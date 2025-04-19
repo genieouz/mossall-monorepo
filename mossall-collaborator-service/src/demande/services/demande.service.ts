@@ -26,11 +26,6 @@ import { DemandeAction } from '../enums/demande-action.enum';
 import { IOrganization } from '~/organization/schemas/interfaces/organization.interface';
 import { WaveFees } from '../demande.constant';
 import { exit } from 'process';
-import { OrganisationServiceService } from '~/organisation-service/services/organisation-service.service';
-import { PaymentService } from '~/payment/services/payment.service';
-import { CategorySocioproServiceService } from '~/category-sociopro-service/services/category-sociopro-service.service';
-import { ObjectId } from 'bson';
-import { EventService } from '~/event/services/event.service';
 
 @Injectable()
 export class DemandeService extends AbstractService<IDemande> {
@@ -41,31 +36,21 @@ export class DemandeService extends AbstractService<IDemande> {
     private notificationService: NotificationService,
     private eventEmitter: EventEmitter2,
     private organizationService: OrganizationService,
-    private organisationServiceService: OrganisationServiceService,
-
-    private categorySocioproServiceService: CategorySocioproServiceService,
-    private paymentService: PaymentService,
-    private eventService: EventService,
   ) {
     super(model);
   }
 
-  async create(
-    demandeInput: DemandeInput,
-    currentUser: any,
-    organizationServiceId: string,
-    eventId: string = null,
-  ) {
+  async create(demandeInput: DemandeInput, currentUser: any) {
     this.#logger.log(
       'create demande with payload ' + JSON.stringify(demandeInput),
     );
     this.#logger.warn('beginning the validation of request');
-    // if (!currentUser.bankAccountNumber) {
-    //   this.#logger.warn('user not have bank account number');
-    //   throw new PreconditionFailedException(
-    //     "Vous n'avez pas encore renseigné votre numéro de compte bancaire.",
-    //   );
-    // }
+    if (!currentUser.bankAccountNumber) {
+      this.#logger.warn('user not have bank account number');
+      throw new PreconditionFailedException(
+        "Vous n'avez pas encore renseigné votre numéro de compte bancaire.",
+      );
+    }
     if (!currentUser.phoneNumber) {
       this.#logger.warn('user not have phone number');
       throw new PreconditionFailedException(
@@ -78,19 +63,18 @@ export class DemandeService extends AbstractService<IDemande> {
         "Vous n'avez pas encore renseigné votre salaire.",
       );
     }
-    // const today = new Date();
-    // const { demandeDeadlineDay } = await this.organizationService.findOneById(
-    //   currentUser.organization,
-    // );
-    // if (today.getDate() > demandeDeadlineDay) {
-    //   this.#logger.warn('today is deadline day');
-    //   throw new PreconditionFailedException(
-    //     `La deadline de la demande est : ${today.getFullYear()} / ${today.getMonth()} / ${demandeDeadlineDay}`,
-    //   );
-    // }
+    const today = new Date();
+    const { demandeDeadlineDay } = await this.organizationService.findOneById(
+      currentUser.organization,
+    );
+    if (today.getDate() > demandeDeadlineDay) {
+      this.#logger.warn('today is deadline day');
+      throw new PreconditionFailedException(
+        `La deadline de la demande est : ${today.getFullYear()} / ${today.getMonth()} / ${demandeDeadlineDay}`,
+      );
+    }
     const OnePending = await this.findOne({
       owner: currentUser._id,
-      organizationServiceId: organizationServiceId,
       status: { $in: [DemandeStatus.PENDING, DemandeStatus.IN_PROCESS] },
     });
     if (OnePending) {
@@ -100,20 +84,11 @@ export class DemandeService extends AbstractService<IDemande> {
     }
     await this.checkAmountOrFail(demandeInput.amount, currentUser);
 
-    const autoValidate = await this.checkAutoValidate(
-      organizationServiceId,
-      currentUser,
-      eventId,
-    );
-
-    console.log('autoValidation  : ', autoValidate);
-
     const result = await this.insertOne({
       ...demandeInput,
       organization: currentUser.organization,
       owner: currentUser._id,
       fees: demandeInput.amount * WaveFees,
-      organizationServiceId,
     } as IDemande);
     this.eventEmitter.emit('notification.create', {
       entityId: result.id,
@@ -136,12 +111,6 @@ export class DemandeService extends AbstractService<IDemande> {
       initialValue: result,
       user: currentUser,
     });
-    if (autoValidate)
-      this.eventEmitter.emit('demande.auto.validate', {
-        demande: result,
-        user: currentUser,
-      });
-
     return result;
   }
 
@@ -213,36 +182,28 @@ export class DemandeService extends AbstractService<IDemande> {
     return result;
   }
 
-  async validate(demandeId: string) {
+  async validate(demandeId: string, admin: IUser) {
     const demande = await this.findOneOrFail({ _id: demandeId });
-
-    // check if auto validate is enabled
-
+    if (
+      admin.organization != demande.organization ||
+      !['ADMIN', 'SUPER_ADMIN', 'SUPER_ADMIN_ORG', 'DRH', 'RH'].includes(
+        admin.role,
+      )
+    ) {
+      throw new ForbiddenException(
+        'Vous ne pouvez pas effectuer cette action.',
+      );
+    }
     if (demande.status == DemandeStatus.CANCELLED) {
       throw new BadRequestException(`Votre demande ne peux plus être validé!`);
     }
     const date = new Date();
 
-    this.updateOneById(demandeId, {
-      pendingPayment: true,
+    return this.updateOneById(demandeId, {
       status: DemandeStatus.VALIDATED,
       validatedAt: date,
       validatedAtMonth: date.getMonth(),
       validatedAtYear: date.getFullYear(),
-    });
-
-    const result = await this.paymentService.validateDemande(
-      demande,
-      'Auto validate',
-    );
-    if (!result) {
-      throw new BadRequestException(
-        'La transaction a échoué. Veuillez vérifier le numéro de téléphone du collaborateur.',
-      );
-    }
-
-    return this.updateOneById(demandeId, {
-      transactionReference: result.reference,
     });
   }
 
@@ -455,37 +416,5 @@ export class DemandeService extends AbstractService<IDemande> {
     });
 
     return { total, remaining, payed };
-  }
-
-  private async checkAutoValidate(
-    organizationServiceId: string,
-    currentUser: any,
-    eventId: string = null,
-  ) {
-    const organizationService =
-      await this.organisationServiceService.findOneOrFail({
-        _id: organizationServiceId,
-      });
-
-    const categorySocioproService =
-      await this.categorySocioproServiceService.findOne({
-        organisationServiceId: new ObjectId(organizationService._id),
-        categorySocioproId: currentUser.categorySocioPro,
-        eventId: eventId ? new ObjectId(eventId) : null,
-      });
-
-    if (categorySocioproService?.activated) {
-      return categorySocioproService.autoValidate;
-    }
-
-    if (eventId) {
-      const event = await this.eventService.findOneByIdOrFail(eventId);
-      this.#logger.log('event auto validation ', event.autoValidate);
-      if (event.activated) {
-        return event.autoValidate;
-      }
-    }
-
-    if (!eventId) return organizationService.autoValidate;
   }
 }

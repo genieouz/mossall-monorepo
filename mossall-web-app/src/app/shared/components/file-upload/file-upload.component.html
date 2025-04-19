@@ -18,12 +18,12 @@ style="display: flex; height: 100% ; flex-direction: column; justify-content: ce
       for="file_input"
     >
       <span class="type">Importer</span>
-      <span class="format">Format accepté : XLSX</span>
+      <span class="format">Format accepté : csv</span>
     </div>
     <input
       type="file"
       (change)="onFileSelected($event)"
-      accept=".xlsx"
+      accept=".csv"
       style="display: none"
       id="file_input"
     />

@@ -18,7 +18,6 @@ import { AuthGuard } from '~/auth/auth.guard';
 import { IPagination } from '~/commons/graphql/pagination';
 import { UserRole } from '~/users/enums/user-role.enum';
 import { QueryDataConfigInput } from '~/commons/graphql/query-data-config.input';
-import { ObjectId } from 'mongodb';
 
 @UseGuards(AuthGuard)
 @Resolver()
@@ -92,31 +91,6 @@ export class OrganizationResolver {
   }
 
   @Query((returns) => PaginatedUserResult)
-  async fetchPaginatedOrganisationCol(
-    @Args({
-      name: 'metricsInput',
-      type: () => DemandesMetricsInput,
-      nullable: true,
-    })
-    demandesMetricsInput: DemandesMetricsInput = {
-      startDate: new Date('2024-01-01'),
-      endDate: new Date('2030-12-31'),
-    },
-    @CurrentOrganization() org: IOrganization,
-  ) {
-    let endDate = new Date(demandesMetricsInput.endDate);
-    endDate.setDate(endDate.getDate() + 1);
-    return this.userService.findManyAndPaginate({
-      role: UserRole.COLLABORATOR,
-      organization: org.id,
-      createdAt: {
-        $gte: new Date(demandesMetricsInput.startDate),
-        $lt: endDate,
-      },
-    });
-  }
-
-  @Query((returns) => PaginatedUserResult)
   async fetchPaginatedOrganizationCollaborators(
     // @AuthenticatedUser() currentUser: IUser,
     @Args({
@@ -129,37 +103,15 @@ export class OrganizationResolver {
       endDate: new Date('2030-12-31'),
     },
     @CurrentOrganization() org: IOrganization,
-    @Args({
-      name: 'queryFilter',
-      type: () => QueryDataConfigInput,
-      nullable: true,
-    })
-    queryDataConfig: QueryDataConfigInput,
-    @Args({
-      name: 'hasPendingDemandes',
-      type: () => Boolean,
-      nullable: true,
-    })
-    hasPendingDemandes: boolean,
+    @Args({ name: "queryFilter", type: () => QueryDataConfigInput, nullable: true }) queryDataConfig: QueryDataConfigInput,
   ): Promise<IPagination<IUser>> {
     let endDate = new Date(demandesMetricsInput.endDate);
     endDate.setDate(endDate.getDate() + 1);
     const queryFilter = {
       role: UserRole.COLLABORATOR,
       organization: { $in: [org._id, String(org._id)] },
-      createdAt: {
-        $gte: new Date(demandesMetricsInput.startDate),
-        $lt: endDate,
-      },
+      createdAt: { $gte: new Date(demandesMetricsInput.startDate), $lt: endDate },
     };
-
-    if (hasPendingDemandes) {
-      return this.userService.fetchCollaboratorsThatHasPendingDemandes(
-        queryDataConfig,
-        queryFilter,
-      );
-    }
-
     return this.userService.findManyAndPaginate(queryFilter, queryDataConfig);
   }
 
@@ -170,37 +122,5 @@ export class OrganizationResolver {
   ): Promise<any> {
     // const user = await this.userService.getUserById(currentUser._id);
     return this.userService.fetchMyAdmins(org.id);
-  }
-
-  @Query((returns) => PaginatedUserResult)
-  fetchPaginatedOrganisationAdmins(
-    @Args({
-      name: 'metricsInput',
-      type: () => DemandesMetricsInput,
-      nullable: true,
-    })
-    demandesMetricsInput: DemandesMetricsInput = {
-      startDate: new Date('2024-01-01'),
-      endDate: new Date('2030-12-31'),
-    },
-    @CurrentOrganization() org: IOrganization,
-    @Args({
-      name: 'queryFilter',
-      type: () => QueryDataConfigInput,
-      nullable: true,
-    })
-    queryDataConfig: QueryDataConfigInput,
-  ) {
-    let endDate = new Date(demandesMetricsInput.endDate);
-    endDate.setDate(endDate.getDate() + 1);
-    const queryFilter = {
-      role: UserRole.ADMIN,
-      organization: { $in: [org._id, String(org._id)] },
-      createdAt: {
-        $gte: new Date(demandesMetricsInput.startDate),
-        $lt: endDate,
-      },
-    };
-    return this.userService.findManyAndPaginate(queryFilter, queryDataConfig);
   }
 }

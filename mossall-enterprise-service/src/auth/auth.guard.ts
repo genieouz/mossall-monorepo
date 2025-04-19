@@ -7,43 +7,20 @@ import {
 import { Observable } from 'rxjs';
 import { getRequestFromContext } from '~/commons/utils';
 import { AuthService } from './auth.service';
-import { request, Request } from 'express';
-import { COLLABORATOR_SERVICE_USED_KEY, JWT_SECRET } from '~/config/env';
+import { Request } from 'express';
+import { JWT_SECRET } from '~/config/env';
 import * as jwt from 'jsonwebtoken';
 import { UserService } from '~/users/user.service';
-import { Reflector } from '@nestjs/core';
-import { IS_COLLAB_API } from './decorators/collab-api.decorator';
 
 @Injectable()
 export class AuthGuard implements CanActivate {
   constructor(
     private readonly authService: AuthService,
     private readonly userService: UserService,
-    private readonly reflector: Reflector,
   ) {}
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    const isCollabApi = this.reflector.getAllAndOverride<boolean>(
-      IS_COLLAB_API,
-      [context.getHandler(), context.getClass()],
-    );
-
+    // const request = context.switchToHttp().getRequest();
     const request = getRequestFromContext(context);
-    const apiKey = request.headers['x-api-key'];
-
-    console.log('Start use api key', apiKey);
-    console.log({ apiKey, COLLABORATOR_SERVICE_USED_KEY });
-
-    if (
-      apiKey &&
-      COLLABORATOR_SERVICE_USED_KEY &&
-      apiKey == COLLABORATOR_SERVICE_USED_KEY
-    )
-      return true;
-
-    console.log('Key not valid or variable not set');
-
-    if (isCollabApi) return true;
-
     const token = this.extractTokenFromHeader(request);
 
     if (!token) {
@@ -58,7 +35,6 @@ export class AuthGuard implements CanActivate {
         email: payload.user.email,
         blocked: { $ne: true },
       });
-      console.log('Data', data);
 
       if (!data) {
         throw new UnauthorizedException();

@@ -12,10 +12,7 @@ import {
   startWith,
   switchMap,
 } from 'rxjs';
-import {
-  FileUploadService,
-  UserRole,
-} from 'src/app/shared/services/file-upload.service';
+import { FileUploadService } from 'src/app/shared/services/file-upload.service';
 import { SnackBarService } from 'src/app/shared/services/snackbar.service';
 import {
   FetchOrganizationCollaboratorsGQL,
@@ -24,6 +21,14 @@ import {
   UnlockUserGQL,
   User,
 } from 'src/graphql/generated';
+
+export interface PeriodicElement {
+  name: string;
+  position: number;
+  weight: number;
+  symbol: string;
+}
+
 
 @Component({
   selector: 'app-overview',
@@ -43,7 +48,6 @@ export class OverviewComponent implements AfterViewInit {
     'createdAt',
     'action',
   ];
-  type = UserRole.COLLABORATOR;
 
   resultsLength = 0;
   isLoadingResults = true;
@@ -70,6 +74,13 @@ export class OverviewComponent implements AfterViewInit {
     effect(() => {
       const tempData = this.fileUploadService.getDataResponse();
       if (tempData) {
+        // this.data = [
+        //   ...tempData.data.filter((item) => item.error == false),
+        //   ...this.data,
+        // ];
+        // this.dataSource.data = this.data;
+        // this.initSearchForm();
+
         this.searchForm.patchValue({
           search: '',
         });
@@ -145,17 +156,15 @@ export class OverviewComponent implements AfterViewInit {
         this.selectedCollab = this.data[0];
         this.resultsLength =
           data.fetchPaginatedOrganizationCollaborators.pagination.totalItems;
-        this.selectedCollab = this.data?.[0];
+          this.selectedCollab = this.data?.[0];
       });
   }
 
   fetchCollabs() {
-    this.fetchPaginatedOrganizationCollaboratorsGQL
+    this.fetchOrganizationCollaboratorsGQL
       .fetch({}, { fetchPolicy: 'no-cache' })
       .subscribe((result) => {
-        this.collabs = result.data.fetchPaginatedOrganizationCollaborators
-          .results as User[];
-        this.dataSource.data = this.collabs;
+        this.collabs = result.data.fetchOrganizationCollaborators as User[];
         this.selectedCollab = this.collabs?.[0];
       });
   }

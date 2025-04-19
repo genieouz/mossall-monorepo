@@ -34,31 +34,7 @@ export class Demande extends Timestamps {
 
   @Field({ nullable: true })
   rejectedReason: string;
-
-  @Field()
-  refundDuration: number;
-
-  @Field({ nullable: true })
-  remainingRefundAmount: number;
 }
 
 @ObjectType()
 export class PaginatedDemandeResult extends PaginatedResult(Demande) {}
-
-@ObjectType()
-export class CountStatusDemande {
-  @Field()
-  pending: number;
-
-  @Field()
-  rejected: number;
-
-  @Field()
-  validated: number;
-
-  @Field()
-  payed: number;
-
-  @Field()
-  cancelled: number;
-}

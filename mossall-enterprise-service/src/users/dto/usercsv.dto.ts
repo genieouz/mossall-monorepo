@@ -15,45 +15,42 @@ import {
 import { ObjectId } from 'mongoose';
 
 export class UserCSVDTO {
-  @IsNotEmpty({ message: 'Prénom est obligatoire' })
-  @IsString({ message: 'Prénom doit être une chaine de caractères' })
+  @IsNotEmpty()
+  @IsString()
   firstName: string;
 
-  @IsString({ message: 'Prénom doit être une chaine de caractères' })
+  @IsString()
   @IsOptional()
   id: string;
 
-  @IsNotEmpty({ message: 'Nom est obligatoire' })
-  @IsString({ message: 'Nom doit être une chaine de caractères' })
+  @IsNotEmpty()
+  @IsString()
   lastName: string;
 
-  @IsNotEmpty({ message: 'Email est obligatoire' })
-  @IsEmail({}, { message: 'Email doit être valide' })
+  @IsNotEmpty()
+  @IsEmail()
   email: string;
 
-  @IsNotEmpty({ message: 'Date de naissance est obligatoire' })
-  @IsDate({ message: 'Date de naissance doit être une date' })
+  @IsNotEmpty()
+  @IsDate()
   birthDate: string | Date;
 
-  @IsNotEmpty({ message: 'Téléphone est obligatoire' })
+  @IsNotEmpty()
   @Transform(({ value }) => String(value)) // Conversion de number en string
-  @IsString({ message: 'Téléphone doit être une chaine de caractères' })
+  @IsString()
   phoneNumber: string;
 
-  @IsNotEmpty({ message: 'Adresse est obligatoire' })
-  @Transform(({ value }) => String(value)) // Conversion de number en string
-  @IsString({ message: 'Adresse doit être une chaine de caractères' })
+  @IsNotEmpty()
+  @IsString()
   address: string;
 
-  @IsNotEmpty({ message: 'Identifiant unique est obligatoire' })
+  @IsNotEmpty()
   @Transform(({ value }) => String(value)) // Conversion de number en string
-  @IsString({
-    message: 'Identifiant unique doit être une chaine de caractères',
-  })
-  uniqueIdentifier: string;
+  @IsString()
+  uniqueIdentifier: number;
 
-  @IsNotEmpty({ message: 'Fonction est obligatoire' })
-  @IsString({ message: 'Fonction doit être une chaine de caractères' })
+  @IsNotEmpty()
+  @IsString()
   position: string;
 
   @IsOptional()
@@ -63,14 +60,17 @@ export class UserCSVDTO {
   @IsString()
   realm: string;
 
-  @IsNotEmpty({ message: 'Salaire est obligatoire' })
-  @Transform(({ value }) => (value ? Number(value) : value)) // Conversion de number en string
-  @IsNumber({}, { message: 'Salaire doit être un nombre' })
+  @IsNotEmpty()
+  @IsNumber()
   salary: number;
 
   // @IsNotEmpty()
   // @IsString()
   // wizallAccountNumber: string;
+
+  @IsNotEmpty()
+  @IsAlphanumeric()
+  bankAccountNumber: string;
 
   @IsOptional()
   @IsString()
@@ -87,7 +87,4 @@ export class UserCSVDTO {
   @IsOptional()
   @IsBoolean()
   enableEmailNotification: string;
-
-  @IsNotEmpty({ message: 'Catégorie socioprofessionnelle est obligatoire' })
-  categorySocioPro: string;
 }

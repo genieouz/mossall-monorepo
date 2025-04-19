@@ -12,10 +12,4 @@ export interface IDemande extends Document {
   validatedBy?: string;
   transactionReference?: string;
   validatedByBeforeWebhook?: string;
-
-  remainingRefundAmount: number;
-  refundAmount?: number;
-
-  refundDuration: number;
-  organizationServiceId: string;
 }

@@ -21,12 +21,6 @@ export const demandeSchema = new Schema(
     transactionReference: { type: String },
     rejectedAt: { type: Date },
     rejectedBy: { type: Schema.Types.ObjectId, required: false },
-
-    refundAmount: { type: Number, default: 0 },
-    remaingRefundAmount: { type: Number, default: 0 },
-
-    refundDuration: { type: Number, required: true },
-    organizationServiceId: { type: Schema.Types.ObjectId, default: null },
   },
   defaultSchemaOptions,
 );

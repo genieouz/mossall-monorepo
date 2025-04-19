@@ -17,10 +17,10 @@ import { OrganizationModule } from './organization/organization.module';
 import { CollaboratorsModule } from './collaborators/collaborators.module';
 import { DemandeModule } from './demande/demande.module';
 import { ActivityModule } from './activity/activity.module';
-import { OrganisationServiceModule } from './organisation-service/organisation-service.module';
 
 @Module({
   imports: [
+    
     UserModule,
     MongooseModule.forRoot(MONGODB_URL),
     // GraphQLModule.forRoot<ApolloDriverConfig>({
@@ -33,15 +33,14 @@ import { OrganisationServiceModule } from './organisation-service/organisation-s
       // autoSchemaFile: true,
       autoSchemaFile: { path: 'schema.gql', federation: 2 },
       introspection: true,
-      playground: true,
+      playground: true
     }),
     AuthModule,
     EventEmitterModule.forRoot(),
     OrganizationModule,
     CollaboratorsModule,
     DemandeModule,
-    ActivityModule,
-    OrganisationServiceModule,
+    ActivityModule
   ],
   controllers: [AppController],
   providers: [AppService],

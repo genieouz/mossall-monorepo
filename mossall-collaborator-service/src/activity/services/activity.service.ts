@@ -20,159 +20,111 @@ export class Activitieservice extends AbstractService<IActivity> {
     @InjectModel(activityModelName) model: Model<IActivity>,
     private organizationService: OrganizationService,
     private paymentService: PaymentService,
-    private demandeService: DemandeService,
+    private demandeService: DemandeService
   ) {
     super(model);
   }
 
   @OnEvent('activity.demande.create')
-  async CreateDemande(payload: { user: IUser; initialValue: IDemande }) {
+  async CreateDemande(payload: { user: IUser, initialValue: IDemande }) {
     const { user, initialValue } = payload;
     const activity = await this.createDemandeActivity(user, initialValue);
-    const message = `${user.firstName} ${user.lastName}(${user.email}) a créé une nouvelle demande d'un montant de ${activity.initialValue?.amount}. 
-    Demande N°: ${activity.initialValue?.number}, 
+    const message = `${ user.firstName } ${ user.lastName }(${user.email}) a créé une nouvelle demande d'un montant de ${ activity.initialValue?.amount }. 
+    Demande N°: ${ activity.initialValue?.number }, 
     ${activity.message}`;
     const org = await this.organizationService.findOneById(user.organization);
     this.logger.log(`Organization ${org.name}: ${message}`);
-    await this.insertOne({
-      ...activity,
-      message,
-      scope: ActivityScope.demande,
-    } as IActivity);
+    await this.insertOne({ ...activity, message, scope: ActivityScope.demande } as IActivity);
   }
 
   @OnEvent('activity.demande.update')
-  async UpdateDemande(payload: { user: IUser; initialValue: IDemande }) {
+  async UpdateDemande(payload: { user: IUser, initialValue: IDemande }) {
     const { user, initialValue } = payload;
     const activity = await this.createDemandeActivity(user, initialValue);
-    const message = `${user.firstName} ${user.lastName}(${user.email}) a modifié sa demande N°${activity.initialValue?.number}. 
+    const message = `${ user.firstName } ${ user.lastName }(${user.email}) a modifié sa demande N°${ activity.initialValue?.number }. 
     ${activity.message}`;
     const org = await this.organizationService.findOneById(user.organization);
     this.logger.log(`Organization ${org.name}: ${message}`);
-    await this.insertOne({
-      ...activity,
-      message,
-      scope: ActivityScope.demande,
-    } as IActivity);
+    await this.insertOne({ ...activity, message, scope: ActivityScope.demande } as IActivity);
   }
 
   @OnEvent('activity.demande.cancel-by-collaborator')
-  async CancelByCollaboratorDemande(payload: {
-    user: IUser;
-    initialValue: IDemande;
-  }) {
+  async CancelByCollaboratorDemande(payload: { user: IUser, initialValue: IDemande }) {
     const { user, initialValue } = payload;
     const activity = await this.createDemandeActivity(user, initialValue);
-    const message = `${user.firstName} ${user.lastName}(${user.email}) a annulé sa demande N°${activity.initialValue?.number}. 
+    const message = `${ user.firstName } ${ user.lastName }(${user.email}) a annulé sa demande N°${ activity.initialValue?.number }. 
     ${activity.message}`;
     const org = await this.organizationService.findOneById(user.organization);
     this.logger.log(`Organization ${org.name}: ${message}`);
-    await this.insertOne({
-      ...activity,
-      message,
-      scope: ActivityScope.demande,
-    } as IActivity);
+    await this.insertOne({ ...activity, message, scope: ActivityScope.demande } as IActivity);
   }
 
   @OnEvent('activity.demande.cancel-by-admin')
-  async CancelByAdminDemande(payload: { user: IUser; initialValue: IDemande }) {
+  async CancelByAdminDemande(payload: { user: IUser, initialValue: IDemande }) {
     const { user, initialValue } = payload;
     const activity = await this.createDemandeActivity(user, initialValue);
-    const message = `${user.firstName} ${user.lastName}(${user.email}) a annulé la demande N°${activity.initialValue?.number}. 
+    const message = `${ user.firstName } ${ user.lastName }(${user.email}) a annulé la demande N°${ activity.initialValue?.number }. 
     ${activity.message}`;
     const org = await this.organizationService.findOneById(user.organization);
     this.logger.log(`Organization ${org.name}: ${message}`);
-    await this.insertOne({
-      ...activity,
-      message,
-      scope: ActivityScope.demande,
-    } as IActivity);
+    await this.insertOne({ ...activity, message, scope: ActivityScope.demande } as IActivity);
   }
 
   @OnEvent('activity.demande.reject')
-  async RejectDemande(payload: { user: IUser; initialValue: IDemande }) {
+  async RejectDemande(payload: { user: IUser, initialValue: IDemande }) {
     const { user, initialValue } = payload;
     const activity = await this.createDemandeActivity(user, initialValue);
-    const message = `${user.firstName} ${user.lastName}(${user.email}) a rejeté la demande N°${activity.initialValue?.number}. 
+    const message = `${ user.firstName } ${ user.lastName }(${user.email}) a rejeté la demande N°${ activity.initialValue?.number }. 
     ${activity.message}, 
-    Motif rejet: ${activity.currentValue?.rejectedReason}, `;
+    Motif rejet: ${ activity.currentValue?.rejectedReason }, `;
     const org = await this.organizationService.findOneById(user.organization);
     this.logger.log(`Organization ${org.name}: ${message}`);
-    await this.insertOne({
-      ...activity,
-      message,
-      scope: ActivityScope.demande,
-    } as IActivity);
+    await this.insertOne({ ...activity, message, scope: ActivityScope.demande } as IActivity);
   }
 
   @OnEvent('activity.demande.validate')
-  async ValidateDemande(payload: { user: IUser; initialValue: IDemande }) {
+  async ValidateDemande(payload: { user: IUser, initialValue: IDemande }) {
     const { user, initialValue } = payload;
     const activity = await this.createDemandeActivity(user, initialValue);
-    const payment = await this.paymentService.findOne({
-      'meta.demandeId': activity.initialValue?.id || activity.initialValue?._id,
-    });
-    const message = `${user.firstName} ${user.lastName}(${user.email}) a validé la demande N°${activity.initialValue?.number}. 
+    const payment = await this.paymentService.findOne({ 'meta.demandeId': activity.initialValue?.id || activity.initialValue?._id })
+    const message = `${ user.firstName } ${ user.lastName }(${user.email}) a validé la demande N°${ activity.initialValue?.number }. 
     ${activity.message}, 
-    Statut payment: ${payment?.status}, `;
+    Statut payment: ${ payment?.status }, `;
     const org = await this.organizationService.findOneById(user.organization);
     this.logger.log(`Organization ${org.name}: ${message}`);
-    await this.insertOne({
-      ...activity,
-      message,
-      scope: ActivityScope.demande,
-    } as IActivity);
-  }
-
-  @OnEvent('activity.demande.autoValidate')
-  async AutoValidateDemande(payload: { user: IUser; initialValue: IDemande }) {
-    const { user, initialValue } = payload;
-    const activity = await this.createDemandeActivity(user, initialValue);
-    const message = `${user.firstName} ${user.lastName}(${user.email}) a validé automatiquement la demande N°${activity.initialValue?.number}. 
-    ${activity.message}`;
-    const org = await this.organizationService.findOneById(user.organization);
-    this.logger.log(`Organization ${org.name}: ${message}`);
-    await this.insertOne({
-      ...activity,
-      message,
-      scope: ActivityScope.demande,
-    } as IActivity);
+    await this.insertOne({ ...activity, message, scope: ActivityScope.demande } as IActivity);
   }
 
   @OnEvent('activity.demande.paye')
-  async PayeDemande(payload: { user: IUser; initialValue: IDemande }) {
+  async PayeDemande(payload: { user: IUser, initialValue: IDemande }) {
     const { user, initialValue } = payload;
     const activity = await this.createDemandeActivity(user, initialValue);
-    const message = `${user.firstName} ${user.lastName}(${user.email}) a marqué "Remboursé" la demande N°${activity.initialValue?.number}. 
+    const message = `${ user.firstName } ${ user.lastName }(${user.email}) a marqué "Remboursé" la demande N°${ activity.initialValue?.number }. 
     ${activity.message}`;
     const org = await this.organizationService.findOneById(user.organization);
     this.logger.log(`Organization ${org.name}: ${message}`);
-    await this.insertOne({
-      ...activity,
-      message,
-      scope: ActivityScope.demande,
-    } as IActivity);
+    await this.insertOne({ ...activity, message, scope: ActivityScope.demande } as IActivity);
   }
 
   async createDemandeActivity(user: IUser, initialValue: IDemande) {
     const date = new Date();
     const formattedDate = DateFormatter.format(date, 'yyyy-MM-dd HH:mm:ss');
-    const currentValue = await this.demandeService.findOneById(
-      initialValue.id || initialValue._id,
-    );
+    const currentValue = await this.demandeService.findOneById(initialValue.id || initialValue._id);
     const activity: IActivity = {
       organization: user.organization,
       user: user.id || user._id,
       initialValue: initialValue.toObject?.() || initialValue,
       currentValue: currentValue.toObject?.() || currentValue,
-      message: `Statut initial: ${initialValue?.status}, 
-      Statut actuel: ${currentValue?.status}, 
-      Montant: ${currentValue?.amount}, 
+      message: `Statut initial: ${ initialValue?.status }, 
+      Statut actuel: ${ currentValue?.status }, 
+      Montant: ${ currentValue?.amount }, 
       Date: ${formattedDate}`,
       meta: {},
-      scope: ActivityScope.demande,
+      scope: ActivityScope.demande
     } as IActivity;
 
     return activity;
   }
+
 }
+

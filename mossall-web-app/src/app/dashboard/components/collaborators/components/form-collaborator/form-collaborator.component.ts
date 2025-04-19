@@ -12,8 +12,6 @@ import { SearchService } from 'src/app/shared/services/search/search.service';
 import { SnackBarService } from 'src/app/shared/services/snackbar.service';
 import { dateToString } from 'src/app/shared/utils/time';
 import {
-  CategorySociopro,
-  FetchCategorySocioprosGQL,
   FetchOrganizationCollaboratorGQL,
   InviteCollaboratorGQL,
   LockUserGQL,
@@ -40,8 +38,6 @@ export class FormCollaboratorComponent implements OnInit, OnChanges {
   uniqueIdentifierExists: boolean = false;
   emailExists: boolean = false;
   MobileMoney = Object.values(Wallet);
-  title = 'Création compte collaborateur';
-  categories: Partial<CategorySociopro & { error: boolean }>[] = [];
 
   constructor(
     private fb: FormBuilder,
@@ -52,31 +48,24 @@ export class FormCollaboratorComponent implements OnInit, OnChanges {
     private updateCollaboratorGQL: UpdateCollaboratorGQL,
     private searchService: SearchService,
     private lockUserGQL: LockUserGQL,
-    private unlockUserGQL: UnlockUserGQL,
-    private listCategorieGQL: FetchCategorySocioprosGQL
+    private unlockUserGQL: UnlockUserGQL
   ) {
     this.collaboratorForm = this.fb.group({
-      email: ['', [Validators.required, Validators.email]],
+      email: ['', [Validators.required]],
       firstName: ['', Validators.required],
       lastName: ['', Validators.required],
       phoneNumber: [
         '',
-        [
-          Validators.required,
-
-          Validators.pattern(/^\+221(78|77|76|70|75)\d{7}$/),
-        ],
+        [Validators.required, Validators.pattern(/^(78|77|76|70|75)\d{7}$/)],
       ],
       address: [''],
-      // position: ['', Validators.required],
-      uniqueIdentifier: ['', [Validators.required]],
-      salary: [0, [Validators.required, Validators.min(50000)]],
+      position: ['', Validators.required],
+      uniqueIdentifier: ['', Validators.required],
+      salary: [500000, [Validators.required, Validators.min(50000)]],
       wizallAccountNumber: [''],
-      bankAccountNumber: [''],
+      bankAccountNumber: ['', Validators.required],
       birthDate: [null],
       favoriteWallet: [Wallet.Wave],
-      categorySocioProId: ['', Validators.required],
-      position: ['TESTEUR'],
     });
   }
 
@@ -93,16 +82,6 @@ export class FormCollaboratorComponent implements OnInit, OnChanges {
       this.formType == 'edit'
         ? 'Modifier les infos du collaborateur '
         : 'Création compte collaborateur';
-    this.listCategorieGQL
-      .fetch({
-        queryConfig: {
-          limit: 10,
-        },
-      })
-      .subscribe((result) => {
-        this.categories = result.data.fetchCategorySociopros.results;
-        console.log('list', this.categories);
-      });
     this.initSearch();
   }
 
@@ -119,26 +98,11 @@ export class FormCollaboratorComponent implements OnInit, OnChanges {
       this.collaboratorForm.markAllAsTouched();
       return;
     }
-    if (this.collaboratorId) {
-      this.edit();
-      return;
-    }
     this.isLoading = true;
-    const temp = this.collaboratorForm.getRawValue();
-    delete temp.categorySocioProId;
     this.inviteCollaboratorGQL
-      .mutate({
-        collaboratorInput: {
-          ...temp,
-          position: 'TESTEUR',
-          bankAccountNumber: Math.random().toString(36).substring(2, 15),
-        },
-        categorySocioProId: this.collaboratorForm.value.categorySocioProId,
-      })
+      .mutate({ collaboratorInput: this.collaboratorForm.value })
       .subscribe(
         (result) => {
-          console.log('result', result);
-
           this.isLoading = false;
           if (result.data) {
             this.router.navigate(['/dashboard/collaborators']);
@@ -148,7 +112,6 @@ export class FormCollaboratorComponent implements OnInit, OnChanges {
           }
         },
         (error) => {
-          this.snackBarService.showErrorSnackBar();
           this.isLoading = false;
         }
       );
@@ -161,19 +124,12 @@ export class FormCollaboratorComponent implements OnInit, OnChanges {
     }
     this.isLoading = true;
     const value = {
-      ...this.collaboratorForm.getRawValue(),
+      ...this.collaboratorForm.value,
       salary: Number(this.collaboratorForm.value.salary || 0),
-      position: 'TESTEUR',
     };
-    const categorySocioProId = value.categorySocioProId;
     delete value.email;
-    delete value.categorySocioProId;
     this.updateCollaboratorGQL
-      .mutate({
-        collaboratorInput: value,
-        collaboratorId: this.collaboratorId,
-        categorySocioProId,
-      })
+      .mutate({ collaboratorInput: value, collaboratorId: this.collaboratorId })
       .subscribe(
         (result) => {
           this.isLoading = false;
@@ -185,7 +141,6 @@ export class FormCollaboratorComponent implements OnInit, OnChanges {
           }
         },
         (error) => {
-          this.snackBarService.showErrorSnackBar();
           this.isLoading = false;
         }
       );
@@ -193,7 +148,6 @@ export class FormCollaboratorComponent implements OnInit, OnChanges {
 
   getCollab() {
     if (this.collaboratorId) {
-      this.title = 'Modification compte collaborateur';
       this.fetchOrganizationCollaboratorGQL
         .fetch(
           { collaboratorId: this.collaboratorId },
@@ -202,11 +156,7 @@ export class FormCollaboratorComponent implements OnInit, OnChanges {
         .subscribe((result) => {
           this.collaborator = result.data.fetchOrganizationCollaborator as User;
           const birthDate = dateToString(this.collaborator.birthDate);
-          this.collaboratorForm.patchValue({
-            ...this.collaborator,
-            categorySocioProId: this?.collaborator.categorySociopro.id,
-            birthDate,
-          });
+          this.collaboratorForm.patchValue({ ...this.collaborator, birthDate });
         });
     }
   }
@@ -215,27 +165,18 @@ export class FormCollaboratorComponent implements OnInit, OnChanges {
     this.collaboratorForm
       .get('phoneNumber')
       .valueChanges.pipe(
-        debounceTime(200),
+        debounceTime(300),
         distinctUntilChanged(),
-        switchMap((value) => {
-          console.log('valuePhoneNumber', value);
-
-          return this.searchService.phoneNumberExists(
+        switchMap((value) =>
+          this.searchService.phoneNumberExists(
             value,
             false,
             this.collaboratorId
-          );
-        })
+          )
+        )
       )
       .subscribe((result) => {
-        this.collaboratorForm.controls['phoneNumber'].setErrors(null);
-        this.collaboratorForm.controls['phoneNumber'].updateValueAndValidity();
         this.phoneNumberExists = result;
-        if (result) {
-          this.collaboratorForm.controls['phoneNumber'].setErrors({
-            phoneNumberExists: true,
-          });
-        }
       });
   }
 
@@ -245,49 +186,33 @@ export class FormCollaboratorComponent implements OnInit, OnChanges {
       .valueChanges.pipe(
         debounceTime(300),
         distinctUntilChanged(),
-        switchMap((value) => {
-          console.log('value', value);
-
-          return this.searchService.emailExists(
-            value,
-            false,
-            this.collaboratorId
-          );
-        })
+        switchMap((value) =>
+          this.searchService.emailExists(value, false, this.collaboratorId)
+        )
       )
       .subscribe((result) => {
         this.emailExists = result;
-        this.collaboratorForm.controls['email'].setErrors(null);
-        this.collaboratorForm.controls['email'].updateValueAndValidity();
-
-        if (result) {
-          this.collaboratorForm.controls['email'].setErrors({
-            emailExists: true,
-          });
-        }
-
-        console.log('email', this.collaboratorForm.controls['email'].errors);
       });
   }
 
-  // checkBankAccount() {
-  //   this.collaboratorForm
-  //     .get('bankAccountNumber')
-  //     .valueChanges.pipe(
-  //       debounceTime(300),
-  //       distinctUntilChanged(),
-  //       switchMap((value) =>
-  //         this.searchService.bankAccountNumberExists(
-  //           value,
-  //           false,
-  //           this.collaboratorId
-  //         )
-  //       )
-  //     )
-  //     .subscribe((result) => {
-  //       this.bankAccountNumberExists = result;
-  //     });
-  // }
+  checkBankAccount() {
+    this.collaboratorForm
+      .get('bankAccountNumber')
+      .valueChanges.pipe(
+        debounceTime(300),
+        distinctUntilChanged(),
+        switchMap((value) =>
+          this.searchService.bankAccountNumberExists(
+            value,
+            false,
+            this.collaboratorId
+          )
+        )
+      )
+      .subscribe((result) => {
+        this.bankAccountNumberExists = result;
+      });
+  }
 
   checkUniqueIdentifier() {
     this.collaboratorForm
@@ -295,31 +220,22 @@ export class FormCollaboratorComponent implements OnInit, OnChanges {
       .valueChanges.pipe(
         debounceTime(300),
         distinctUntilChanged(),
-        switchMap((value) => {
-          return this.searchService.uniqueIdentifierExists(
+        switchMap((value) =>
+          this.searchService.uniqueIdentifierExists(
             value,
             false,
             this.collaboratorId
-          );
-        })
+          )
+        )
       )
       .subscribe((result) => {
-        this.collaboratorForm.controls['uniqueIdentifier'].setErrors(null);
-        this.collaboratorForm.controls[
-          'uniqueIdentifier'
-        ].updateValueAndValidity();
-        if (result) {
-          this.collaboratorForm.controls['uniqueIdentifier'].setErrors({
-            uniqueIdentifierExists: true,
-          });
-        }
         this.uniqueIdentifierExists = result;
       });
   }
 
   initSearch() {
     this.checkPhone();
-    // this.checkBankAccount();
+    this.checkBankAccount();
     this.checkUniqueIdentifier();
     this.checkEmail();
   }

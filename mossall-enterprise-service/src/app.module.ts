@@ -21,15 +21,9 @@ import { PaymentModule } from './payment/payment.module';
 import { APP_INTERCEPTOR } from '@nestjs/core';
 import { AppInterceptor } from './app.interceptor';
 import { FileUploadService } from './users/file.upload.service';
-import { ConfigModule, ConfigService } from '@nestjs/config';
+import { ConfigModule } from '@nestjs/config';
 import { ActivityModule } from './activity/activity.module';
 import { Any } from './commons/graphql/scalars/any.scalar';
-import { OrganisationServiceModule } from './organisation-service/organisation-service.module';
-import { CategorySocioproModule } from './category-sociopro/category-sociopro.module';
-import { EventModule } from './event/event.module';
-import { ServiceModule } from './service/service.module';
-import { CategorySocioproServiceModule } from './category-sociopro-service/category-sociopro-service.module';
-import { RemboursementModule } from './remboursement/remboursement.module';
 
 @Module({
   imports: [
@@ -54,14 +48,10 @@ import { RemboursementModule } from './remboursement/remboursement.module';
     NotificationModule,
     DemandeModule,
     PaymentModule,
-    OrganisationServiceModule,
-    ConfigModule.forRoot({ isGlobal: true, envFilePath: ['.env'] }),
-    RemboursementModule,
-    ActivityModule,
-    CategorySocioproModule,
-    CategorySocioproServiceModule,
-    EventModule,
-    ServiceModule,
+    ConfigModule.forRoot({
+      isGlobal: true,
+    }),
+    ActivityModule
   ],
   controllers: [AppController],
   providers: [
@@ -70,25 +60,7 @@ import { RemboursementModule } from './remboursement/remboursement.module';
       provide: APP_INTERCEPTOR,
       useClass: AppInterceptor,
     },
-    Any,
+    Any
   ],
 })
-export class AppModule {
-  static port: number;
-  static apiVersion: string;
-  static apiPrefix: string;
-  static corsAllowedOrigins: string[];
-  static corsAllowedMethods: string[];
-
-  constructor(private readonly configService: ConfigService) {
-    AppModule.port = +this.configService.get('API_PORT');
-    AppModule.apiVersion = this.configService.get('API_VERSION');
-    AppModule.apiPrefix = this.configService.get('API_PREFIX');
-    // AppModule.corsAllowedOrigins = this.configService
-    //   .get('CORS_ORIGINS')
-    //   .split(',');
-    // AppModule.corsAllowedMethods = this.configService
-    //   .get('CORS_METHODS')
-    //   .split(',');
-  }
-}
+export class AppModule {}

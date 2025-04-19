@@ -1,14 +1,9 @@
 import { Component } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
-import { MatTabChangeEvent } from '@angular/material/tabs';
 import { SnackBarService } from 'src/app/shared/services/snackbar.service';
 import {
-  ActivateOrganisationServiceGQL,
-  DesactivateOrganisationServiceGQL,
   FetchCurrentAdminGQL,
-  FetchServicesGQL,
   Organization,
-  Service,
   UpdateOrganizationGQL,
 } from 'src/graphql/generated';
 
@@ -28,8 +23,6 @@ export class OrganizationComponent {
     new Date().getMonth() + 1,
     0
   );
-  listServices: Partial<Service>[] = [];
-  selectedService: Partial<Service> = {};
   itemsCardDate: { day: number; active: boolean; pending: boolean }[] = [];
   password: boolean = true;
   newPassword: boolean = true;
@@ -46,33 +39,33 @@ export class OrganizationComponent {
     private fb: FormBuilder,
     private snackBarService: SnackBarService,
     private fetchCurrentAdminGQL: FetchCurrentAdminGQL,
-    private updateOrganizationGQL: UpdateOrganizationGQL,
-    private listService: FetchServicesGQL,
-    private activeOrganizationService: ActivateOrganisationServiceGQL,
-    private desactiveOrganizationService: DesactivateOrganisationServiceGQL
+    private updateOrganizationGQL: UpdateOrganizationGQL
   ) {
-   
+    this.form = this.fb.group({
+      name: ['', Validators.required],
+      maxDemandeAmount: [1000000, [Validators.required, Validators.min(5000)]],
+      amountPercent: [
+        75,
+        [Validators.required, Validators.min(1), Validators.max(100)],
+      ],
+      fees: [0],
+    });
 
     this.getCurrentorganization();
     this.generateCardItems();
   }
-  ngOnInit(): void {
-    this.listService.fetch().subscribe({
-      next: (response) => {
-        this.listServices = response.data.fetchServices.results;
-        this.listServices = [
-          { id: 'djkkdsj', title: 'général', description: 'général' },
-          ...this.listServices,
-        ];
-        this.selectedService = this.listServices[0];
-      },
-      error: (err) => {},
-    });
-  }
-  get name() {
-    return this.form.get('name');
-  }
 
+  generateCardItems() {
+    for (let index = 1; index <= 28; index++) {
+      const daySelected = {
+        day: index,
+        active: false,
+        pending: false,
+      };
+
+      this.itemsCardDate.push(daySelected);
+    }
+  }
   getCurrentorganization(useCache = true) {
     this.fetchCurrentAdminGQL
       .fetch({}, { fetchPolicy: 'no-cache' })
@@ -91,75 +84,6 @@ export class OrganizationComponent {
         }
       });
   }
-  onServiceActivationChange(data: {
-    isActive: boolean;
-    organisationServiceId: string;
-  }) {
-    if (data.isActive) {
-      this.activeOrganizationService
-        .mutate({ organisationServiceId: data.organisationServiceId })
-        .subscribe({
-          next: (result) => {
-            if (result.data.activateOrganisationService) {
-              this.snackBarService.showSuccessSnackBar(
-                'Service activé avec succès'
-              );
-            } else {
-              this.snackBarService.showErrorSnackBar();
-            }
-          },
-          error: (error) => {
-            this.snackBarService.showErrorSnackBar();
-          },
-        });
-    } else {
-      this.desactiveOrganizationService
-        .mutate({ organisationServiceId: data.organisationServiceId })
-        .subscribe({
-          next: (result) => {
-            if (result.data.deactivateOrganisationService) {
-              this.snackBarService.showSuccessSnackBar(
-                'Service désactivé avec succès'
-              );
-            } else {
-              this.snackBarService.showErrorSnackBar();
-            }
-          },
-          error: (error) => {
-            this.snackBarService.showErrorSnackBar();
-          },
-        });
-    }
-  }
-
-  updateOrganization() {
-    console.log(this.form.invalid);
-    if (this.form.invalid) {
-      this.form.markAllAsTouched();
-      return;
-    }
-    const value = this.form.value;
-    this.updateOrganizationGQL
-      .mutate({
-        organizationId: this.organization.id,
-        organizationInput: value,
-      })
-      .subscribe(
-        (result) => {
-          if (result.data.updateOrganization) {
-            this.snackBarService.showSuccessSnackBar(
-              'Organization modifié avec succès'
-            );
-          } else {
-            this.snackBarService.showErrorSnackBar();
-          }
-        },
-        (error) => {
-          this.snackBarService.showErrorSnackBar();
-        }
-      );
-  }
-
   setDate(item: number) {
     this.dayLimite = item;
     this.itemsCardDate.forEach((element) => {
@@ -196,19 +120,30 @@ export class OrganizationComponent {
         },
       });
   }
-  generateCardItems() {
-    for (let index = 1; index <= 28; index++) {
-      const daySelected = {
-        day: index,
-        active: false,
-        pending: false,
-      };
-
-      this.itemsCardDate.push(daySelected);
+  updateOrganization() {
+    if (this.form.invalid) {
+      this.form.markAllAsTouched();
+      return;
     }
-  }
-
-  onTabChange(event: MatTabChangeEvent) {
-    this.selectedService = this.listServices[event.index];
+    const value = this.form.value;
+    this.updateOrganizationGQL
+      .mutate({
+        organizationId: this.organization.id,
+        organizationInput: value,
+      })
+      .subscribe(
+        (result) => {
+          if (result.data.updateOrganization) {
+            this.snackBarService.showSuccessSnackBar(
+              'Organization modifié avec succès'
+            );
+          } else {
+            this.snackBarService.showErrorSnackBar();
+          }
+        },
+        (error) => {
+          this.snackBarService.showErrorSnackBar();
+        }
+      );
   }
 }

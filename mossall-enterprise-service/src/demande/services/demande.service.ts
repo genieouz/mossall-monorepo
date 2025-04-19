@@ -2,7 +2,6 @@ import {
   BadRequestException,
   ForbiddenException,
   Injectable,
-  Logger,
   PreconditionFailedException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
@@ -27,12 +26,9 @@ import { ObjectId } from 'bson';
 import { SupportPaiement } from '../dto/support.entity';
 import { IOrganization } from '~/organization/schemas/interfaces/organization.interface';
 import { WaveFee, WaveFees } from '../demande.utils';
-import { ServiceService } from '~/service/services/service.service';
-import { Demande } from '../dto/demande.entity';
 
 @Injectable()
 export class DemandeService extends AbstractService<IDemande> {
-  #logger = new Logger(DemandeService.name);
   constructor(
     @InjectModel(demandeModelName) model: Model<IDemande>,
     private userService: UserService,
@@ -40,15 +36,8 @@ export class DemandeService extends AbstractService<IDemande> {
     private eventEmitter: EventEmitter2,
     private paymentService: PaymentService,
     private organizationService: OrganizationService,
-    private produitService: ServiceService,
   ) {
-    super(model, [
-      'status',
-      'organization',
-      'amount|number',
-      'number|number',
-      'users.owner._id:firstName+lastName',
-    ]);
+    super(model);
   }
 
   async cancel(demandeId: string, currentUser: IUser) {
@@ -81,25 +70,22 @@ export class DemandeService extends AbstractService<IDemande> {
     return result;
   }
 
-  async validate(demandeId: string, admin: IUser, autovalidate = false) {
+  async validate(demandeId: string, admin: IUser) {
     const demande = await this.findOneOrFail({ _id: demandeId });
-    const collab = await this.userService.findOneOrFail({
+    await this.userService.findOneOrFail({
       _id: demande.owner,
       blocked: { $ne: true },
     });
-
-    if (!autovalidate)
-      if (
-        String(admin.organization) != String(demande.organization) ||
-        !['ADMIN', 'SUPER_ADMIN', 'SUPER_ADMIN_ORG', 'DRH', 'RH'].includes(
-          admin.role,
-        )
-      ) {
-        throw new ForbiddenException(
-          'Vous ne pouvez pas effectuer cette action.',
-        );
-      }
-
+    if (
+      String(admin.organization) != String(demande.organization) ||
+      !['ADMIN', 'SUPER_ADMIN', 'SUPER_ADMIN_ORG', 'DRH', 'RH'].includes(
+        admin.role,
+      )
+    ) {
+      throw new ForbiddenException(
+        'Vous ne pouvez pas effectuer cette action.',
+      );
+    }
     if (demande.status == DemandeStatus.CANCELLED) {
       throw new BadRequestException(`Votre demande ne peux plus être validé!`);
     }
@@ -112,14 +98,8 @@ export class DemandeService extends AbstractService<IDemande> {
       validatedAt: date,
       validatedAtMonth: date.getMonth(),
       validatedAtYear: date.getFullYear(),
-
-      remainingRefundAmount: demande.amount,
     });
     this.eventEmitter.emit('demande.status.changed', demande);
-    this.eventEmitter.emit('demande.validate', {
-      demande,
-      collab,
-    });
     // Tracking déplacé dans payment service
     // this.eventEmitter.emit('activity.demande.validate', { initialValue: demande, user: admin });
     const validatedBy = admin.id || admin._id;
@@ -139,16 +119,11 @@ export class DemandeService extends AbstractService<IDemande> {
   }
 
   async paye(demandeId: string, admin: IUser) {
-    this.#logger.log('===> IN PAYE');
     const demande = await this.findOneOrFail({ _id: demandeId });
-    this.#logger.log('===> research demande by id is ok');
     const payement = await this.paymentService.findOne({
       'meta.demandeId': String(demandeId),
     });
     if (!payement || payement.status != AlalPaymentStatus.success) {
-      this.#logger.log(
-        "===> 'Cette transaction ne peux pas être remboursée car avait échoué'",
-      );
       throw new BadRequestException(
         'Cette transaction ne peux pas être remboursée car avait échoué',
       );
@@ -159,24 +134,21 @@ export class DemandeService extends AbstractService<IDemande> {
         admin.role,
       )
     ) {
-      this.#logger.log("===> 'Vous ne pouvez pas effectuer cette action.'");
       throw new ForbiddenException(
         'Vous ne pouvez pas effectuer cette action.',
       );
     }
     if (demande.status != DemandeStatus.VALIDATED) {
-      this.#logger.log("===> 'Votre demande n'est pas validé!'");
       throw new BadRequestException(`Votre demande n'est pas validé!`);
     }
     const date = new Date();
-    this.#logger.log('===> update demande status');
+
     const result = await this.updateOneById(demandeId, {
       status: DemandeStatus.PAYED,
       validatedAt: date,
       validatedAtMonth: date.getMonth(),
       validatedAtYear: date.getFullYear(),
     });
-    this.#logger.log('===> emit event');
     this.eventEmitter.emit('demande.status.changed', demande);
     this.eventEmitter.emit('activity.demande.paye', {
       initialValue: demande,
@@ -390,14 +362,15 @@ export class DemandeService extends AbstractService<IDemande> {
   }
 
   async getSupportPaiement(organization: IOrganization) {
-    const { demandeDeadlineDay } = organization;
+    //a modifier apres test le first day of current month
     const startDate = new Date();
-    startDate.setDate(demandeDeadlineDay);
-    startDate.setMonth(startDate.getMonth() - 1);
+    startDate.setDate(1);
+    //a modifier apres test le last day of current month
 
     const endDate = new Date();
-    endDate.setDate(demandeDeadlineDay);
-    return this.aggregateMany<IDemande>([
+    endDate.setDate(1);
+    endDate.setMonth(endDate.getMonth() + 1);
+    const demandes = await this.aggregateMany<SupportPaiement>([
       {
         $match: {
           status: DemandeStatus.VALIDATED,
@@ -409,16 +382,12 @@ export class DemandeService extends AbstractService<IDemande> {
         $project: {
           _id: false,
           owner: '$owner',
-          organizationServiceId: '$organizationServiceId',
           amount: { $add: ['$amount', { $multiply: ['$amount', WaveFees] }] },
         },
       },
       {
         $group: {
-          _id: {
-            owner: '$owner',
-            organizationServiceId: '$organizationServiceId',
-          },
+          _id: '$owner',
           amount: { $sum: '$amount' },
         },
       },
@@ -426,24 +395,27 @@ export class DemandeService extends AbstractService<IDemande> {
       {
         $project: {
           _id: false,
-          owner: '$_id.owner',
-          organizationServiceId: '$_id.organizationServiceId',
+          owner: '$_id',
           amount: '$amount',
         },
       },
-      {
-        $sort: {
-          owner: 1,
-        },
-      },
     ]);
-  }
+    const users = await this.userService.findMany({
+      _id: {
+        $in: demandes.map((d) => d.owner),
+      },
+    });
 
-  async findByCollaborator(collaboratorId: string, status?: DemandeStatus) {
-    if (status) {
-      return this.findMany({ owner: new ObjectId(collaboratorId), status });
-    }
-
-    return this.findMany({ owner: new ObjectId(collaboratorId) });
+    return demandes.map((d) => {
+      const user = users.find((u) => u._id.toString() === d.owner.toString());
+      return {
+        ...d,
+        email: user?.email,
+        firstName: user?.firstName,
+        lastName: user?.lastName,
+        phoneNumber: user?.phoneNumber,
+        uniqueIdentifier: user?.uniqueIdentifier,
+      };
+    });
   }
 }

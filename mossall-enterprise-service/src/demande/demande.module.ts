@@ -8,15 +8,12 @@ import { PaymentModule } from '~/payment/payment.module';
 import { UserModule } from '~/users/user.module';
 import { DemandePropertyResolver } from './resolvers/demande-property.resolver';
 import { DemandeResolver } from './resolvers/demande.resolver';
-import { demandeModelName } from './schemas/demande.model-name';
+import {
+    demandeModelName,
+} from './schemas/demande.model-name';
 import { demandeSchema } from './schemas/demande.schema';
 import { DemandeEventsService } from './services/demande-events.service';
 import { DemandeService } from './services/demande.service';
-import { DemandeController } from './controllers/demande/demande.controller';
-import { DemandeFileService } from './services/demande-file.service';
-import { OrganisationServiceModule } from '~/organisation-service/organisation-service.module';
-import { RemboursementModule } from '~/remboursement/remboursement.module';
-import { ServiceModule } from '~/service/service.module';
 
 @Module({
   imports: [
@@ -29,7 +26,7 @@ import { ServiceModule } from '~/service/service.module';
         useFactory: async (connection: Connection) => {
           const schema = demandeSchema;
           const AutoIncrement = require('mongoose-sequence')(connection);
-          schema.plugin(AutoIncrement, { inc_field: 'number' });
+          schema.plugin(AutoIncrement, {inc_field: 'number'});
           return schema;
         },
         inject: [getConnectionToken()],
@@ -39,19 +36,15 @@ import { ServiceModule } from '~/service/service.module';
     forwardRef(() => UserModule),
     forwardRef(() => NotificationModule),
     forwardRef(() => PaymentModule),
-    forwardRef(() => OrganizationModule),
-    forwardRef(() => OrganisationServiceModule),
-    forwardRef(() => RemboursementModule),
-    forwardRef(() => ServiceModule),
+    forwardRef(() => OrganizationModule)
   ],
   providers: [
     DemandeService,
     DemandeEventsService,
     DemandeResolver,
-    DemandePropertyResolver,
-    DemandeFileService,
+    DemandePropertyResolver
   ],
-  exports: [DemandeService],
-  controllers: [DemandeController],
+  exports: [DemandeService]
 })
 export class DemandeModule {}
+

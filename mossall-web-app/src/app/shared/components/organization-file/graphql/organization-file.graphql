@@ -1,29 +1,11 @@
 query FetchSupportPaiement {
   fetchSupportPaiement {
-   
     amount
-
-    collaborator {
-      id
-      firstName
-      lastName
-      balance
-      email
-      totalDemandeAmount
-      salary
-      authorizedAdvance
-      phoneNumber
-      bankAccountNumber
-      uniqueIdentifier
-      # organization {
-      # 	name
-      # }
+    owner
+    firstName
+    lastName
+    phoneNumber 
+    email
+    uniqueIdentifier
     }
-    organisationService{
-      service{
-        title
-      }
-    }
-   
-  }
 }

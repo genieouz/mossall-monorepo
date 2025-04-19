@@ -21,7 +21,6 @@ type Organization {
   amountPercent: Float!
   fees: Float!
   demandeDeadlineDay: Float
-  organisationService: [OrganisationService!]
 }
 
 type User {
@@ -48,7 +47,6 @@ type User {
   enableEmailNotification: Boolean
   status: Float
   authorizedAdvance: Float!
-  categorySociopro: CategorySociopro
 }
 
 """
@@ -98,100 +96,19 @@ type Session {
   enabled: Boolean!
 }
 
-type CategorySociopro {
+type Notification {
   createdAt: DateTime!
   updatedAt: DateTime!
-  id: Any!
-  title: String
-  description: String
-  activated: Boolean
-  organizationId: String
-  addedBy: String
-  organisation: Organization!
-}
-
-type PaginatedCategorySocioproResult {
-  pagination: PaginationInfo!
-  results: [CategorySociopro!]!
-}
-
-type OrganisationService {
-  createdAt: DateTime!
-  updatedAt: DateTime!
-  id: Any!
-  amount: Int
-  amountUnit: AmountUnit!
-  refundDuration: Int!
-  refundDurationUnit: DurationUnit!
-  activated: Boolean!
-  activatedAt: DateTime
-  activationDurationDay: Int!
-  autoValidate: Boolean!
-  organizationId: String!
-  serviceId: String!
-  organization: Organization!
-  service: Service!
-  events: [Event!]
-  categoriesocioproservices: [CategorySocioproService!]
-  demandes: [Demande!]
-}
-
-enum AmountUnit {
-  Fixed
-  Percentage
-}
-
-enum DurationUnit {
-  Day
-  Month
-}
-
-type PaginatedOrganisationServiceResult {
-  pagination: PaginationInfo!
-  results: [OrganisationService!]!
-}
-
-type Event {
-  createdAt: DateTime!
-  updatedAt: DateTime!
-  id: Any!
+  entityId: String
   title: String!
-  description: String
-  startDate: DateTime!
-  endDate: DateTime!
-  amount: Int!
-  amountUnit: AmountUnit!
-  refundDuration: Int!
-  refundDurationUnit: DurationUnit!
-  activated: Boolean!
-  activatedAt: DateTime
-  autoValidate: Boolean!
-  addedBy: String
-  organisationService: OrganisationService!
-  categorySocioproServices: [CategorySocioproService!]
+  content: String!
+  author: User!
+  organization: String!
+  viewedByMe: Boolean!
 }
 
-type PaginatedEventResult {
-  pagination: PaginationInfo!
-  results: [Event!]!
-}
-
-type Service {
-  createdAt: DateTime!
-  updatedAt: DateTime!
-  id: Any!
-  title: String!
-  description: String
-  identifier: String!
-  refundDurationMonth: Int!
-  available: Boolean!
-  publishedAt: DateTime
-  addedBy: String
-}
-
-type PaginatedServiceResult {
-  pagination: PaginationInfo!
-  results: [Service!]!
+type Payment {
+  id: ID!
 }
 
 type Demande {
@@ -204,12 +121,8 @@ type Demande {
   status: DemandeStatus!
   colloborator: User
   rejectedReason: String
-  refundDuration: Float!
-  remainingRefundAmount: Float
   collaborator: User!
   statusText: String
-  organisationService: OrganisationService
-  remboursements: [Remboursement!]
 }
 
 enum DemandeStatus {
@@ -226,79 +139,6 @@ type PaginatedDemandeResult {
   results: [Demande!]!
 }
 
-type CountStatusDemande {
-  pending: Float!
-  rejected: Float!
-  validated: Float!
-  payed: Float!
-  cancelled: Float!
-}
-
-type CategorySocioproService {
-  createdAt: DateTime!
-  updatedAt: DateTime!
-  id: Any!
-  amount: Int!
-  amountUnit: AmountUnit!
-  refundDuration: Int!
-  refundDurationUnit: DurationUnit!
-  activated: Boolean!
-  activatedAt: DateTime
-  autoValidate: Boolean!
-  organisationServiceId: String!
-  categorySocioproId: String!
-  eventId: String
-  categorySociopro: CategorySociopro
-  organisationService: OrganisationService
-  event: Event
-}
-
-type PaginatedCategorySocioproServiceResult {
-  pagination: PaginationInfo!
-  results: [CategorySocioproService!]!
-}
-
-type Notification {
-  createdAt: DateTime!
-  updatedAt: DateTime!
-  entityId: String
-  title: String!
-  content: String!
-  author: User!
-  organization: String!
-  viewedByMe: Boolean!
-}
-
-type PaginatedNotificationResult {
-  pagination: PaginationInfo!
-  results: [Notification!]!
-}
-
-type Payment {
-  id: ID!
-}
-
-type Remboursement {
-  createdAt: DateTime!
-  updatedAt: DateTime!
-  id: ID!
-  amount: Float!
-  number: Float!
-  fees: Float
-  status: RemboursementStatus!
-  demandeId: String!
-  userId: String
-  validatedAt: DateTime
-  demande: Demande
-  user: User
-  validatedBy: User
-}
-
-enum RemboursementStatus {
-  PAYED
-  PENDING
-}
-
 type DemandesMetricsRow {
   date: String!
   amount: Float!
@@ -310,6 +150,16 @@ type DemandesMetrics {
   payed: [DemandesMetricsRow!]!
   total: [DemandesMetricsRow!]!
   remaining: [DemandesMetricsRow!]!
+}
+
+type SupportPaiement {
+  amount: Float!
+  owner: String!
+  firstName: String!
+  lastName: String!
+  phoneNumber: String!
+  email: String!
+  uniqueIdentifier: String!
 }
 
 type Activity {
@@ -347,65 +197,22 @@ type Query {
   uniqueIdentifierExists(uniqueIdentifier: String!, userId: String, isAdmin: Boolean): Boolean!
   bankAccountNumberExists(bankAccountNumber: String!, userId: String, isAdmin: Boolean): Boolean!
   emailExists(email: String!, userId: String, isAdmin: Boolean): Boolean!
-  fetchCollaboratorCount(filter: UserFilterInput): Float!
   loginAdmin(loginInput: LoginInput!): Session!
   fetchOrganizations: [Organization!]!
   fetchOrganization(organizationId: ID!): Organization!
   fetchOrganizationCollaborators(metricsInput: DemandesMetricsInput): [User!]!
-  fetchPaginatedOrganisationCol(metricsInput: DemandesMetricsInput): PaginatedUserResult!
-  fetchPaginatedOrganizationCollaborators(metricsInput: DemandesMetricsInput, queryFilter: QueryDataConfigInput, hasPendingDemandes: Boolean): PaginatedUserResult!
+  fetchPaginatedOrganizationCollaborators(metricsInput: DemandesMetricsInput, queryFilter: QueryDataConfigInput): PaginatedUserResult!
   fetchOrganizationAdmins: [User!]!
-  fetchPaginatedOrganisationAdmins(metricsInput: DemandesMetricsInput, queryFilter: QueryDataConfigInput): PaginatedUserResult!
   fetchOrganizationDemandes(metricsInput: DemandesMetricsInput): [Demande!]!
-  fetchPaginatedOrganizationDemandes(metricsInput: DemandesMetricsInput, queryFilter: QueryDataConfigInput, organizationServiceId: String): PaginatedDemandeResult!
-  fetchDemandesByCollaborator(collaboratorId: ID!, status: DemandeStatus): [Demande!]!
+  fetchPaginatedOrganizationDemandes(metricsInput: DemandesMetricsInput, queryFilter: QueryDataConfigInput): PaginatedDemandeResult!
   fetchDemandesMetrics(metricsInput: DemandesMetricsInput!): DemandesMetrics!
-  fetchSupportPaiement: [Demande!]!
-  fetchCountStatus(filter: DemandesMetricsInput): CountStatusDemande!
-  fetchTotalDemandesAmount(status: DemandeStatus, filter: DemandesMetricsInput): Float
-  fetchCategorySociopros(queryConfig: QueryDataConfigInput): PaginatedCategorySocioproResult!
-  fetchAllCategorySociopros(queryConfig: QueryDataConfigInput): [CategorySociopro!]!
-  fetchCategorySociopro(categorySocioproId: ID!): CategorySociopro!
-  fetchOrganizationCollaborator(collaboratorId: String!): User!
-  fetchOrganisationServices(queryConfig: QueryDataConfigInput): PaginatedOrganisationServiceResult!
-  fetchAllOrganisationServices(queryConfig: QueryDataConfigInput): [OrganisationService!]!
-  fetchOrganisationService(organisationServiceId: ID!): OrganisationService!
-  fetchOrganisationServiceByOrganisationIdAndServiceId(organisationId: ID!, serviceId: ID!): OrganisationService
-  fetchEvents(queryConfig: QueryDataConfigInput, organizationServiceId: ID!): PaginatedEventResult!
-  fetchAllEvents(queryConfig: QueryDataConfigInput, organizationServiceId: ID!): [Event!]!
-  fetchEvent(eventId: ID!): Event!
-  fetchServices(queryConfig: QueryDataConfigInput): PaginatedServiceResult!
-  fetchAllServices(queryConfig: QueryDataConfigInput): [Service!]!
-  fetchService(serviceId: ID!): Service!
-  fetchServicesPub(queryConfig: QueryDataConfigInput): PaginatedServiceResult!
-  fetchServicePub(serviceId: String!): Service!
-  fetchCategorySocioproServices(queryConfig: QueryDataConfigInput): PaginatedCategorySocioproServiceResult!
-  fetchAllCategorySocioproServices(queryConfig: QueryDataConfigInput, organisationServiceId: ID!): [CategorySocioproService!]!
-  fetchCategorySocioproService(categorySocioproServiceId: ID!): CategorySocioproService!
+  fetchSupportPaiement: [SupportPaiement!]!
   fetchOrganizationNotifications: [Notification!]!
-  fetchPaginatedNotifications(queryFilter: QueryDataConfigInput, metricsInput: DemandesMetricsInput): PaginatedNotificationResult!
   fetchPayments: [Payment!]!
   fetchPayment(paymentId: ID!): Payment!
-  myRemboursements: [Remboursement!]!
-  fetchRemboursementByUserId(userId: ID!): [Remboursement!]!
-  fetchAllRemboursements: [Remboursement!]!
-  fetchRemboursementsByDemande(demandeId: ID!): [Remboursement!]!
+  fetchOrganizationCollaborator(collaboratorId: String!): User!
   fetchPaginatedActivities(queryFilter: QueryDataConfigInput): PaginatedActivityResult!
   fetchActivity(activityId: ID!): Activity!
-}
-
-input UserFilterInput {
-  startDate: String
-  endDate: String
-  role: UserRole
-}
-
-"""Possible user role"""
-enum UserRole {
-  ADMIN
-  SUPER_ADMIN
-  SUPER_ADMIN_ORG
-  COLLABORATOR
 }
 
 input LoginInput {
@@ -457,43 +264,17 @@ type Mutation {
   rejectDemandeByAdmin(demandeId: ID!, rejectedReason: String!): Boolean!
   validateDemande(demandeId: ID!): Boolean!
   payeDemande(demandeId: ID!): Boolean!
-  createCategorySociopro(categorySocioproInput: CategorySocioproInput!, organizationId: ID!): CategorySociopro!
-  updateCategorySociopro(categorySocioproInput: CategorySocioproUpdateInput!, categorySocioproId: ID!): Boolean!
-  deleteCategorySociopro(categorySocioproId: ID!): Boolean!
-  activateCategorySociopro(categorySocioproId: ID!, activatedAt: DateTime): Boolean!
-  deactivateCategorySociopro(categorySocioproId: ID!): Boolean!
-  inviteCollaborator(collaborator: InviteCollaboratorInput!, categorySocioProId: String): Boolean!
-  inviteAdmin(admin: InviteCollaboratorInput!): Boolean!
-  updateCollaborator(collaborator: UpdateCollaboratorInput!, collaboratorId: String!, categorySocioProId: String): Boolean!
-  createOrganisationService(organisationServiceInput: OrganisationServiceInput!, organisationId: ID!, serviceId: ID!): OrganisationService!
-  updateOrganisationService(organisationServiceInput: OrganisationServiceUpdateInput!, organisationServiceId: ID!): Boolean!
-  deleteOrganisationService(organisationServiceId: ID!): Boolean!
-  activateOrganisationService(organisationServiceId: ID!): Boolean!
-  deactivateOrganisationService(organisationServiceId: ID!): Boolean!
-  createEvent(eventInput: EventInput!, organizationServiceId: ID!): Event!
-  updateEvent(eventInput: EventUpdateInput!, eventId: ID!): Boolean!
-  deleteEvent(eventId: ID!): Boolean!
-  activateEvent(eventId: ID!): Boolean!
-  deactivateEvent(eventId: ID!): Boolean!
-  createService(serviceInput: ServiceInput!): Service!
-  updateService(serviceInput: ServiceUpdateInput!, serviceId: ID!): Boolean!
-  deleteService(serviceId: ID!): Boolean!
-  activateService(serviceId: ID!): Boolean!
-  deactivateService(serviceId: ID!): Boolean!
-  createCategorySocioproService(categorySocioproServiceInput: CategorySocioproServiceInput!, categorySocioproId: ID!, organisationServiceId: ID!, eventId: ID): CategorySocioproService!
-  updateCategorySocioproService(categorySocioproServiceInput: CategorySocioproServiceUpdateInput!, categorySocioproServiceId: ID!): Boolean!
-  deleteCategorySocioproService(categorySocioproServiceId: ID!): Boolean!
-  activateCategorySocioproService(categorySocioproServiceId: ID!): Boolean!
-  deactivateCategorySocioproService(categorySocioproServiceId: ID!): Boolean!
   viewOrganizationNotifications: Boolean!
-  validateRemboursement(remboursementId: ID!): Boolean!
+  inviteCollaborator(collaborator: InviteCollaboratorInput!): Boolean!
+  inviteAdmin(admin: InviteCollaboratorInput!): Boolean!
+  updateCollaborator(collaborator: UpdateCollaboratorInput!, collaboratorId: String!): Boolean!
 }
 
 input UpdateMyAdminProfileInput {
   firstName: String!
   lastName: String!
   phoneNumber: String!
-  address: String
+  address: String!
   birthDate: DateTime
   favoriteWallet: Wallet
   enableEmailNotification: Boolean
@@ -536,19 +317,6 @@ input OrganizationUpdateInput {
   demandeDeadlineDay: Float
 }
 
-input CategorySocioproInput {
-  title: String!
-  description: String
-  activated: Boolean
-}
-
-input CategorySocioproUpdateInput {
-  title: String
-  description: String
-  activated: Boolean
-  activatedAt: DateTime
-}
-
 input InviteCollaboratorInput {
   email: String!
   firstName: String!
@@ -576,90 +344,4 @@ input UpdateCollaboratorInput {
   bankAccountNumber: String
   birthDate: DateTime
   favoriteWallet: Wallet
-}
-
-input OrganisationServiceInput {
-  amount: Int
-  amountUnit: AmountUnit
-  refundDuration: Int
-  refundDurationUnit: DurationUnit
-  activated: Boolean
-  activatedAt: DateTime
-  activationDurationDay: Int
-  autoValidate: Boolean
-}
-
-input OrganisationServiceUpdateInput {
-  amount: Int
-  amountUnit: AmountUnit
-  refundDuration: Int
-  refundDurationUnit: DurationUnit
-  activated: Boolean
-  activatedAt: DateTime
-  activationDurationDay: Int
-  autoValidate: Boolean
-}
-
-input EventInput {
-  title: String!
-  description: String
-  startDate: DateTime!
-  endDate: DateTime!
-  activated: Boolean
-  amount: Int
-  amountUnit: AmountUnit
-  refundDuration: Int!
-  refundDurationUnit: DurationUnit
-  activatedAt: DateTime
-  autoValidate: Boolean
-}
-
-input EventUpdateInput {
-  title: String
-  description: String
-  startDate: DateTime
-  endDate: DateTime
-  amount: Int
-  amountUnit: AmountUnit
-  refundDuration: Int
-  refundDurationUnit: DurationUnit
-  activated: Boolean
-  activatedAt: DateTime
-  autoValidate: Boolean
-}
-
-input ServiceInput {
-  title: String!
-  description: String
-  identifier: String!
-  refundDurationMonth: Int!
-  available: Boolean!
-}
-
-input ServiceUpdateInput {
-  title: String
-  description: String
-  identifier: String
-  available: Boolean
-  refundDurationMonth: Float
-}
-
-input CategorySocioproServiceInput {
-  amount: Int
-  amountUnit: AmountUnit
-  refundDuration: Int!
-  refundDurationUnit: DurationUnit
-  activated: Boolean!
-  activatedAt: DateTime
-  autoValidate: Boolean
-}
-
-input CategorySocioproServiceUpdateInput {
-  amount: Int
-  amountUnit: AmountUnit
-  refundDuration: Int
-  refundDurationUnit: DurationUnit
-  activated: Boolean
-  activatedAt: DateTime
-  autoValidate: Boolean
 }

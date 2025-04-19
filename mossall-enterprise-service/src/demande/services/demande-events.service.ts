@@ -5,9 +5,6 @@ import { IUser } from '~/users/schemas/interfaces/user.interface';
 import { UserService } from '~/users/user.service';
 import { IDemande } from '../schemas/interfaces/demande.interface';
 import { DemandeService } from './demande.service';
-import { RemboursementService } from '~/remboursement/services/remboursement.service';
-import { RemboursementStatus } from '~/remboursement/enums/remboursement-status.enum';
-import { DemandeStatus } from '../enums/demande-status.enum';
 
 @Injectable()
 export class DemandeEventsService {
@@ -15,7 +12,6 @@ export class DemandeEventsService {
     private userService: UserService,
     private demandeService: DemandeService,
     private eventEmitter: EventEmitter2,
-    private remboursementService: RemboursementService,
   ) {}
 
   @OnEvent('demande.status.changed')
@@ -34,37 +30,5 @@ export class DemandeEventsService {
       demande: newDemande,
       email: user.email,
     });
-  }
-
-  @OnEvent('demande.remboursement.done')
-  async demandeRemboursementDone(demande) {
-    const remboursements = await this.remboursementService.findMany({
-      demandeId: demande._id,
-    });
-
-    const allRemboursementsDone = remboursements.every(
-      (remboursement) => remboursement.status === RemboursementStatus.PAYED,
-    );
-
-    if (allRemboursementsDone) {
-      await this.demandeService.updateOne(
-        { _id: demande._id },
-        {
-          status: DemandeStatus.PAYED,
-          remainingRefundAmount: 0,
-        },
-      );
-
-      this.eventEmitter.emit('demande.status.changed', demande);
-    } else {
-      await this.demandeService.updateOne(
-        { _id: demande._id },
-        {
-          remainingRefundAmount:
-            demande.refundAmount - remboursements[0].amount,
-        },
-      );
-      console.log('Not all remboursements are done');
-    }
   }
 }

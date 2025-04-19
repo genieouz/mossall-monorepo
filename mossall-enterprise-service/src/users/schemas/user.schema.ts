@@ -2,7 +2,6 @@ import { Schema } from 'mongoose';
 import { Wallet } from '~/payment/enums/wallet.enum';
 import { UserRole } from '../enums/user-role.enum';
 import { EnumState } from '~/commons/interfaces/state.interface';
-import { categorySocioproModelName } from '~/category-sociopro/schemas/category-sociopro.model-name';
 
 export const userSchema = new Schema(
   {
@@ -38,12 +37,6 @@ export const userSchema = new Schema(
     status: { type: String, required: false },
     enabled: { type: Boolean, default: false, required: false },
     fonction: { type: String, required: false },
-
-    categorySocioPro: {
-      type: Schema.Types.ObjectId,
-      ref: categorySocioproModelName,
-      default: null,
-    },
   },
   { strict: false, timestamps: true },
 );
@@ -56,7 +49,7 @@ userSchema.index(
   { uniqueIdentifier: 1, realm: 1, organization: 1 },
   { unique: true },
 );
-// userSchema.index(
-//   { bankAccountNumber: 1, realm: 1, organization: 1 },
-//   { unique: true },
-// );
+userSchema.index(
+  { bankAccountNumber: 1, realm: 1, organization: 1 },
+  { unique: true },
+);

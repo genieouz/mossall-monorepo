@@ -39,7 +39,7 @@ export class DemandeController {
         @Body('demandeId') demandeId: string,
         @Body('admin') admin: IUser
     ) {
-        // return this.demandeService.validate(demandeId, admin);
+        return this.demandeService.validate(demandeId, admin);
     }
 
     @Post('paye')

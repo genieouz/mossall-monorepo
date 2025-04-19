@@ -27,8 +27,6 @@ import { UserRole } from './enums/user-role.enum';
 import { decode } from 'base64-arraybuffer';
 import { parse } from 'papaparse';
 import { Buffer } from 'buffer';
-import { normalizeQueryDataConfig } from '~/commons/utils';
-import { PaginationInfo } from '~/commons/graphql/pagination';
 
 @Injectable()
 export class UserService extends AbstractService<IUser> {
@@ -114,7 +112,7 @@ export class UserService extends AbstractService<IUser> {
   }
 
   async updateMyProfile(userId: string, payload: UpdateMyAdminProfileInput) {
-    return this.updateOneById(userId, payload);
+    return this.updateOneById(userId, payload)
     // try {
     //   const response = await lastValueFrom(
     //     this.httpService.put(`${USER_SERVICE_URL}/users/${userId}`, payload),
@@ -136,11 +134,6 @@ export class UserService extends AbstractService<IUser> {
   ) {
     let endDate = new Date(metricsInput.endDate);
     endDate.setDate(endDate.getDate() + 1);
-    return this.findManyAndPaginate({
-      role: UserRole.COLLABORATOR,
-      organization,
-      createdAt: { $gte: new Date(metricsInput.startDate), $lt: endDate },
-    });
     return this.findMany({
       role: UserRole.COLLABORATOR,
       organization,
@@ -150,104 +143,5 @@ export class UserService extends AbstractService<IUser> {
 
   async fetchMyAdmins(organization: string) {
     return this.findMany({ organization, role: UserRole.ADMIN });
-  }
-
-  async fetchCollaboratorsThatHasPendingDemandes(
-    queryConfig: any,
-    queryFilter: any,
-  ): Promise<any> {
-    const {
-      limit,
-      page = 1,
-      orderBy,
-      search,
-    } = normalizeQueryDataConfig(queryConfig);
-    const skip = (page - 1) * limit;
-
-    const stages = [
-      {
-        $match: {
-          ...queryFilter,
-        },
-      },
-      {
-        $lookup: {
-          from: 'demandes',
-          localField: '_id',
-          foreignField: 'owner',
-          as: 'demandes',
-        },
-      },
-      {
-        $match: {
-          'demandes.status': 'PENDING',
-        },
-      },
-      {
-        $addFields: {
-          pendingDemandes: {
-            $filter: {
-              input: '$demandes',
-              as: 'demande',
-              cond: { $eq: ['$$demande.status', 'PENDING'] },
-            },
-          },
-        },
-      },
-      {
-        $addFields: {
-          pendingDemandesCount: { $size: '$pendingDemandes' },
-        },
-      },
-      {
-        $match: {
-          pendingDemandesCount: { $gt: 0 },
-        },
-      },
-      {
-        $project: {
-          _id: 1,
-          firstName: 1,
-          lastName: 1,
-          email: 1,
-          phoneNumber: 1,
-          uniqueIdentifier: 1,
-          salary: 1,
-          balance: 1,
-          role: 1,
-          organization: 1,
-          pendingDemandesCount: 1,
-          pendingDemandes: 1,
-          createdAt: 1,
-          updatedAt: 1,
-        },
-      },
-    ];
-
-    const totalCount = await this.aggregateTotal([
-      ...stages,
-      { $count: 'total' },
-    ]);
-
-    const results = await this.aggregateMany([
-      ...stages,
-      { $sort: { createdAt: -1 } },
-      { $skip: skip },
-      { $limit: limit },
-      { $set: { id: '$_id' } },
-    ]);
-
-    const pageCount = Math.ceil(totalCount / limit);
-    const currentPage = page;
-    const pageSize = results.length;
-
-    const pagination: PaginationInfo = {
-      totalItems: totalCount,
-      pageCount,
-      currentPage,
-      pageSize,
-    };
-
-    return { results, pagination };
   }
 }

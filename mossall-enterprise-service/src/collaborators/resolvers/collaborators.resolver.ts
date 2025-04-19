@@ -25,16 +25,9 @@ export class CollaboratorResolver {
   async inviteCollaborator(
     @Args({ name: 'collaborator', type: () => InviteCollaboratorInput })
     collaborator: InviteCollaboratorInput,
-    @Args({ name: 'categorySocioProId', type: () => String, nullable: true })
-    categorySocioProId: string,
     @CurrentUser() user: IUser,
   ): Promise<boolean> {
-    categorySocioProId = categorySocioProId || null;
-    return this.collaboratorService.inviteCollaborator(
-      collaborator,
-      categorySocioProId,
-      user._id,
-    );
+    return this.collaboratorService.inviteCollaborator(collaborator, user._id);
   }
 
   @Mutation((returns) => Boolean)
@@ -52,13 +45,10 @@ export class CollaboratorResolver {
     collaborator: UpdateCollaboratorInput,
     @Args({ name: 'collaboratorId', type: () => String })
     collaboratorId: string,
-    @Args({ name: 'categorySocioProId', type: () => String, nullable: true })
-    categorySocioProId: string,
   ): Promise<boolean> {
     return this.collaboratorService.updateCollaborator(
       collaborator,
       collaboratorId,
-      categorySocioProId,
     );
   }
 

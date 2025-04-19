@@ -36,7 +36,6 @@ export class PaymentService extends AbstractService<IPayment> {
     // const demande = await this.demandeService.findOneByIdOrFail(demandeId);
     const admin = await this.userService.findOneById(validatedBy);
     const collab = await this.userService.findByIdOrFail(demande.owner);
-
     if (!collab.phoneNumber) {
       throw new BadRequestException(
         "Le collaborateur ne dispose pas d'un numéro de téléphone valide!",
@@ -54,7 +53,7 @@ export class PaymentService extends AbstractService<IPayment> {
         customer: {
           email: collab.email,
           full_name: `${collab.firstName} ${collab.lastName}`,
-          phone: collab.phoneNumber.replace("+221",""),
+          phone: collab.phoneNumber,
         },
       };
       const result: any = (await lastValueFrom(
@@ -64,29 +63,19 @@ export class PaymentService extends AbstractService<IPayment> {
           headers,
         ),
       )) as any;
-      console.log('==============');
-      console.log(result.data.data);
-      console.log('==============');
-
       const payment = await this.insertOne({
         ...result.data.data.disburse,
         meta: { demandeId: demande.id, validatedBy },
-      });
-
-      this.eventEmitter.emit('activity.demande.validate', {
-        initialValue: demande,
-        user: admin,
-      });
+      })
+      
+      this.eventEmitter.emit('activity.demande.validate', { initialValue: demande, user: admin });
       // this.eventEmitter.emit('new_payment', {
       //   ...result.data.data.disburse,
       //   meta: { demandeId: demande.id },
       // });
       return payment;
     } catch (error) {
-      this.eventEmitter.emit('activity.demande.validate', {
-        initialValue: demande,
-        user: admin,
-      });
+      this.eventEmitter.emit('activity.demande.validate', { initialValue: demande, user: admin });
       console.log(error);
       throw error;
     }

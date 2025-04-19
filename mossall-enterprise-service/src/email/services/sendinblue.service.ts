@@ -26,13 +26,13 @@ export class SendinblueService {
     return this.sendEmail(
       { email, password, frontUrl: frontUrl || ADMIN_FRONT_URL },
       [{ email }],
-      39,
+      1,
     );
   }
 
   @OnEvent('collaborator.invite')
   async inviteCollaborator({ email, password }): Promise<boolean> {
-    return this.sendEmail({ email, password }, [{ email }], 38);
+    return this.sendEmail({ email, password }, [{ email }], 2);
   }
 
   @OnEvent('email.demande.status.changed')
@@ -58,12 +58,12 @@ export class SendinblueService {
         demandeAmount,
       },
       [{ email }],
-      42,
+      5,
     );
   }
   @OnEvent('startforgotpassword')
   async sendForgotPasswordCode({ email, password }): Promise<boolean> {
-    return this.sendEmail({ email, password }, [{ email }], 40);
+    return this.sendEmail({ email, password }, [{ email }], 3);
   }
   async sendEmail(
     params: any,

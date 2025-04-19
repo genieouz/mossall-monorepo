@@ -13,232 +13,72 @@ import { QueryDataConfigInput } from '../graphql/query-data-config.input';
 import { defaultQueryLimit } from '../mongoose/constants';
 import { MongoId } from '../typings';
 import { diacriticSensitiveRegex, normalizeQueryDataConfig } from '../utils';
-import { create } from 'domain';
-
-interface ParsedSearchField {
-  foreignCollection: string;
-  localField: string;
-  foreignField: string;
-  searchableFields: Array<string | string[]>;
-  additionalFields?: { field: string; type: 'string' | 'number' }[];
-}
 
 export abstract class AbstractService<T extends Document> {
   protected abstractModel: Model<T>;
   private searchFields: string[] = [];
-
   protected constructor(model: Model<T>, searchFields: string[] = []) {
     this.abstractModel = model;
     this.searchFields = searchFields;
   }
 
-  private parseSearchField(field: string): {
-    isComplex: boolean;
-    parsed: ParsedSearchField | string;
-  } {
-    if (field.includes('.')) {
-      const [path, searchableFields, ...additionalFields] = field.split(':');
-      const parts = path.split('.');
-
-      if (parts.length === 3) {
-        const parsedSearchableFields = searchableFields
-          .split(',')
-          .map((field) => (field.includes('+') ? field.split('+') : field));
-
-        return {
-          isComplex: true,
-          parsed: {
-            foreignCollection: parts[0],
-            localField: parts[1],
-            foreignField: parts[2],
-            searchableFields: parsedSearchableFields,
-            additionalFields: additionalFields.map((field) => {
-              const [fieldName, fieldType = 'string'] = field.split('|');
-              return {
-                field: fieldName,
-                type: fieldType as 'string' | 'number',
-              };
-            }),
-          },
-        };
+  async findManyAndPaginate(queryFilter: FilterQuery<T> = {}, queryConfig?: QueryDataConfigInput): Promise<{ results: T[]; pagination: PaginationInfo }> {
+    const { limit, page = 1, orderBy, search } = normalizeQueryDataConfig(queryConfig);
+    let searchFilter = {}
+    if(search && search.trim().length) {
+      searchFilter = { 
+        $or: this.searchFields.map(field => {
+          return { [field]: { $regex: diacriticSensitiveRegex(search), $options: "i"  } }
+        })
       }
     }
 
-    return {
-      isComplex: false,
-      parsed: field,
-    };
-  }
-
-  private createSearchCondition(
-    field: string,
-    search: string,
-    type: 'string' | 'number' = 'string',
-  ) {
-    if (type === 'number') {
-      return {
-        $or: [
-          {
-            $expr: {
-              $regexMatch: {
-                input: { $toString: `$${field}` },
-                regex: search,
-                options: 'i',
-              },
-            },
-          },
-          ...(!isNaN(Number(search)) ? [{ [field]: Number(search) }] : []),
-        ],
-      };
-    }
-    return {
-      [field]: { $regex: diacriticSensitiveRegex(search), $options: 'i' },
-    };
-  }
-
-  async findManyAndPaginate(
-    queryFilter: FilterQuery<T> = {},
-    queryConfig?: QueryDataConfigInput,
-  ): Promise<{ results: T[]; pagination: PaginationInfo }> {
-    const {
-      limit,
-      page = 1,
-      orderBy,
-      search,
-    } = normalizeQueryDataConfig(queryConfig);
-
-    const lookupStages: Set<PipelineStage> = new Set();
-    const searchConditions = [];
-
-    if (search && search.trim().length) {
-      this.searchFields.forEach((field) => {
-        const { isComplex, parsed } = this.parseSearchField(field);
-
-        if (!isComplex) {
-          const [fieldName, fieldType = 'string'] = field.split('|');
-          searchConditions.push(
-            this.createSearchCondition(
-              fieldName,
-              search,
-              fieldType as 'string' | 'number',
-            ),
-          );
-        } else {
-          const parsedField = parsed as ParsedSearchField;
-
-          // Add lookup stage
-          lookupStages.add({
-            $lookup: {
-              from: parsedField.foreignCollection,
-              localField: parsedField.localField,
-              foreignField: parsedField.foreignField,
-              as: `${parsedField.foreignCollection}_lookup`,
-            },
-          });
-
-          // Add unwind stage to flatten the array
-          lookupStages.add({
-            $unwind: {
-              path: `$${parsedField.foreignCollection}_lookup`,
-              preserveNullAndEmptyArrays: true,
-            },
-          });
-
-          // Add addFields stage for combined fields
-          parsedField.searchableFields.forEach((field) => {
-            if (Array.isArray(field)) {
-              // For combined fields, add a new field that concatenates the values
-              const combinedFieldName = `combined_${field.join('_')}`;
-              lookupStages.add({
-                $addFields: {
-                  [combinedFieldName]: {
-                    $concat: [
-                      `$${parsedField.foreignCollection}_lookup.${field[0]}`,
-                      ' ',
-                      `$${parsedField.foreignCollection}_lookup.${field[1]}`,
-                    ],
-                  },
-                },
-              });
-
-              // Add search condition for the combined field
-              searchConditions.push({
-                [combinedFieldName]: {
-                  $regex: diacriticSensitiveRegex(search),
-                  $options: 'i',
-                },
-              });
-            } else {
-              // Single field search
-              searchConditions.push({
-                [`${parsedField.foreignCollection}_lookup.${field}`]: {
-                  $regex: diacriticSensitiveRegex(search),
-                  $options: 'i',
-                },
-              });
-            }
-          });
-
-          // Add additional fields search conditions
-          if (parsedField.additionalFields?.length) {
-            parsedField.additionalFields.forEach(({ field, type }) => {
-              searchConditions.push(
-                this.createSearchCondition(field, search, type),
-              );
-            });
-          }
-        }
-      });
-    }
-
-    const matchStage = {
-      $match: {
-        ...queryFilter,
-        ...(searchConditions.length ? { $or: searchConditions } : {}),
-      },
-    };
-
-    // Group back the results to remove duplicates from unwind
-    const groupStage = {
-      $group: {
-        _id: '$_id',
-        doc: { $first: '$$ROOT' },
-      },
-    };
-
     const totalItems = await this.aggregateTotal([
-      ...Array.from(lookupStages),
-      matchStage,
-      groupStage,
-      { $count: 'total' },
+      {
+        $match: { ...queryFilter, ...searchFilter }
+      },
+      {
+        $count: "total"
+      }
     ]);
-
+    // Calcul de skip basé sur le numéro de la page et la taille de la page
     const skip = (page - 1) * limit;
 
     const results = await this.abstractModel.aggregate([
-      ...Array.from(lookupStages),
-      matchStage,
-      groupStage,
-      { $replaceRoot: { newRoot: '$doc' } },
-      { $sort: { createdAt: -1 } },
-      { $skip: skip },
-      { $limit: limit },
-      { $set: { id: '$_id' } },
-    ]);
+        {
+            $match: {
+                ...queryFilter,
+                ...searchFilter
+            } ,
+        },
+        {
+            $sort: {
+                [orderBy.property]: orderBy.direction
+            }
+        },
+        { $skip: skip },
+        { $limit: limit },
+        {
+          $set: {
+            id: "$_id"
+          }
+        }
+    ])
+                                // .sort({ [orderBy.property]: orderBy.direction });
 
     const pageCount = Math.ceil(totalItems / limit);
     const currentPage = page;
     const pageSize = results.length;
 
     const pagination: PaginationInfo = {
-      totalItems,
-      pageCount,
-      currentPage,
-      pageSize,
+        totalItems,
+        pageCount,
+        currentPage,
+        pageSize,
     };
 
     return { results, pagination };
-  }
+}
 
   insertOne(payload: T): Promise<T> {
     return this.abstractModel.create(payload);

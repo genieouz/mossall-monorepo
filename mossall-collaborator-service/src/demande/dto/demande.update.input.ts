@@ -1,10 +1,7 @@
-import { Field, InputType } from '@nestjs/graphql';
+import { Field, InputType } from "@nestjs/graphql";
 
 @InputType()
 export class DemandeUpdateInput {
-  @Field()
-  amount: number;
-
-  @Field()
-  refundDuration: number;
+    @Field()
+    amount: number;
 }

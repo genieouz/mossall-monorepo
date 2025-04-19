@@ -37,11 +37,6 @@ export const userSchema = new Schema(
     status: { type: String, required: false },
     enabled: { type: Boolean, default: false, required: false },
     fonction: { type: String, required: false },
-
-    categorySocioPro: {
-      type: Schema.Types.ObjectId,
-      default: null,
-    },
   },
   { strict: false, timestamps: true },
 );

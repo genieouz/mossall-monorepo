@@ -13,7 +13,7 @@ import { UserService } from '~/users/user.service';
 import { User } from '~/users/dto/user.entity';
 import { IUser } from '~/users/schemas/interfaces/user.interface';
 import { OrganizationType } from '../enums/organization-type.enum';
-import { CACHE_MANAGER, Cache } from '@nestjs/cache-manager';
+import { CACHE_MANAGER, Cache } from "@nestjs/cache-manager";
 import { ObjectId } from 'bson';
 
 @Injectable()
@@ -22,9 +22,9 @@ export class OrganizationService extends AbstractService<IOrganization> {
     @InjectModel(organizationModelName) private model: Model<IOrganization>,
     private eventEmitter: EventEmitter2,
     private readonly userSerive: UserService,
-    private authService: AuthService,
-  ) // @Inject(CACHE_MANAGER) private cacheManager: Cache
-  {
+    private authService: AuthService
+    // @Inject(CACHE_MANAGER) private cacheManager: Cache
+  ) {
     super(model);
   }
 
@@ -40,23 +40,16 @@ export class OrganizationService extends AbstractService<IOrganization> {
   //   return org as any;
   // }
 
-  async createOrganization(
-    payload: OrganizationInput,
-    type = OrganizationType.DEFAULT,
-  ) {
+  async createOrganization(payload: OrganizationInput, type=OrganizationType.DEFAULT) {
     const realm = KEYCLOAK_ENTERPRISE_REALM;
-    const password = generatePassword(12, {
-      numbers: true,
-      uppercase: true,
-      symbols: true,
-    });
+    const password = generatePassword(12, { numbers: true, uppercase: true, symbols: true });
     // const password = "1234";
-    const newUserData = {
+    const newUserData = { 
       email: payload.rootEmail,
       firstName: payload.rootFirstname,
-      lastName: payload.rootLastname,
+      lastName: payload.rootLastname
     };
-    // const rootUserCreation = await this.userSerive.createKeycloakAdmin({
+    // const rootUserCreation = await this.userSerive.createKeycloakAdmin({ 
     //   email: payload.rootEmail,
     //   firstName: payload.rootFirstname,
     //   lastName: payload.rootLastname
@@ -65,33 +58,21 @@ export class OrganizationService extends AbstractService<IOrganization> {
     //   throw new ConflictException("Email déjà utilisé");
     // }
     // const rootUser = await this.userSerive.getKeycloakUserByEmail(payload.rootEmail, realm);
-    const hasedPassword = this.authService.hashPassword(password);
-    const rootUser = await this.userSerive.insertOne({
-      ...newUserData,
+    const hasedPassword = this.authService.hashPassword(password)
+    const rootUser = await this.userSerive.insertOne({ 
+      ...newUserData, 
       password: hasedPassword,
-      organization: new ObjectId(),
-      role:
-        type === OrganizationType.FINANCIAL
-          ? 'SUPER_ADMIN_FINANCE'
-          : 'SUPER_ADMIN_ORG',
-      realm,
-    } as any);
-
-    const organization = await this.insertOne({
-      name: payload.name,
-      rootUser: rootUser.id,
-      rootEmail: payload.rootEmail,
-    } as IOrganization);
-    await this.userSerive.updateOneById(rootUser.id, {
-      organization: organization.id,
-    });
-    this.eventEmitter.emit('organization.created', {
-      email: payload.rootEmail,
-      password,
-      frontUrl: ADMIN_FRONT_URL,
-    });
+      organization: new ObjectId(), 
+      role: type === OrganizationType.FINANCIAL ? 'SUPER_ADMIN_FINANCE' : 'SUPER_ADMIN_ORG', 
+      realm 
+    } as any)
+    
+    const organization = await this.insertOne({ name: payload.name, rootUser: rootUser.id, rootEmail: payload.rootEmail } as IOrganization);
+    await this.userSerive.updateOneById(rootUser.id, { organization: organization.id })
+    this.eventEmitter.emit(
+      'organization.created',
+      { email: payload.rootEmail, password, frontUrl: ADMIN_FRONT_URL })
     return organization;
   }
-
-  getOrganization;
 }
+

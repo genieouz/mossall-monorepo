@@ -11,7 +11,6 @@ import { userModelName } from './schemas/user.model-name';
 import { DemandeModule } from '~/demande/demande.module';
 import { UsersController } from './controllers/users/users.controller';
 import { FileUploadService } from './file.upload.service';
-import { CategorySocioproModule } from '~/category-sociopro/category-sociopro.module';
 
 @Module({
   imports: [
@@ -20,7 +19,6 @@ import { CategorySocioproModule } from '~/category-sociopro/category-sociopro.mo
     HttpModule,
     forwardRef(() => OrganizationModule),
     forwardRef(() => DemandeModule),
-    CategorySocioproModule,
   ],
   controllers: [UsersController],
   providers: [

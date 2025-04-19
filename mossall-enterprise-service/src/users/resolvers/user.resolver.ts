@@ -1,5 +1,5 @@
 import { UseGuards } from '@nestjs/common';
-import { Args, Float, Mutation, Query, Resolver } from '@nestjs/graphql';
+import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
 import { CurrentUser } from '~/auth/decorators/current-user.decorator';
 import {
   KEYCLOAK_COLLABORATOR_REALM,
@@ -13,8 +13,6 @@ import { ObjectId } from 'bson';
 import { CurrentOrganization } from '~/organization/decorators/current-organization.decorator';
 import { IOrganization } from '~/organization/schemas/interfaces/organization.interface';
 import { AuthGuard } from '~/auth/auth.guard';
-import { UserRole } from '../enums/user-role.enum';
-import { UserFilterInput } from '../dto/user.filter';
 
 // import { GraphQLUpload } from 'graphql-upload/GraphQLUploadExpress';
 
@@ -222,32 +220,5 @@ export class UserResolver {
     @Args({ name: 'destination', type: () => String }) destination: String,
   ) {
     return true;
-  }
-
-  @Query((returns) => Float)
-  async fetchCollaboratorCount(
-    @CurrentOrganization() org: IOrganization,
-    @Args({ name: 'filter', type: () => UserFilterInput, nullable: true })
-    filter: UserFilterInput,
-  ) {
-    const query = {
-      organization: org.id,
-      role: UserRole.COLLABORATOR,
-    };
-
-    if (filter?.role) {
-      query['role'] = filter.role;
-    }
-
-    if (filter?.startDate && filter?.endDate) {
-      query['createdAt'] = {
-        $gte: new Date(filter.startDate),
-        $lt: new Date(filter.endDate),
-      };
-    }
-
-    return this.userService.count({
-      ...query,
-    });
   }
 }

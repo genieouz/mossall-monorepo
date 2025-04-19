@@ -6,10 +6,6 @@ import { IUser } from '~/users/schemas/interfaces/user.interface';
 import { UserService } from '~/users/user.service';
 import { IDemande } from '../schemas/interfaces/demande.interface';
 import { DemandeService } from './demande.service';
-import { HttpService } from '@nestjs/axios';
-import { lastValueFrom } from 'rxjs';
-import { ENTERPRISE_SERVICE, ENTERPRISE_SERVICE_API_KEY } from '~/config/env';
-import { AxiosRequestConfig } from 'axios';
 
 @Injectable()
 export class DemandeEventsService {
@@ -17,7 +13,6 @@ export class DemandeEventsService {
     private userService: UserService,
     private demandeService: DemandeService,
     private eventEmitter: EventEmitter2,
-    private httpService: HttpService,
   ) {}
 
   @OnEvent('demande.status.changed')
@@ -55,39 +50,5 @@ export class DemandeEventsService {
       action,
       collaboratorName: `${user.firstName} ${user.lastName}`,
     });
-  }
-
-  @OnEvent('demande.auto.validate')
-  async demandeAutoValidate({
-    demande,
-  }: {
-    autoValidate: boolean;
-    demande: IDemande;
-  }) {
-    const body: { demandeId: string; user: IUser } = {
-      demandeId: demande._id,
-      user: await this.userService.findById(demande.owner),
-    };
-
-    const headers: AxiosRequestConfig = {
-      headers: {
-        'x-api-key': `${ENTERPRISE_SERVICE_API_KEY}`,
-      },
-    };
-
-    try {
-      const result: any = (await lastValueFrom(
-        this.httpService.post(
-          `${ENTERPRISE_SERVICE}/demande/autovalidate`,
-          body,
-          headers,
-        ),
-      )) as any;
-      console.log('==============');
-      console.log("L'état de la transaction : ", result.data);
-      console.log('==============');
-    } catch (error) {
-      console.log(error.message);
-    }
   }
 }

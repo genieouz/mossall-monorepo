@@ -21,6 +21,4 @@ export interface IUser extends Document {
   enabled: boolean;
   createdAt?: Date;
   updatedAt?: Date;
-
-  categorySocioPro?: string;
 }

@@ -118,16 +118,8 @@ export class HeaderComponent implements OnDestroy, OnInit {
   }
 
   fetchCurrentAdmin() {
-    this.fetchCurrentAdminGQL
-      .fetch(
-        {},
-        {
-          fetchPolicy: 'no-cache',
-        }
-      )
-      .subscribe((result) => {
-        this.currentUser = result.data.fetchCurrentAdmin as any;
-      });
-    console.log(this.authService.getCurrentUser());
+    this.fetchCurrentAdminGQL.fetch().subscribe((result) => {
+      this.currentUser = result.data.fetchCurrentAdmin;
+    });
   }
 }

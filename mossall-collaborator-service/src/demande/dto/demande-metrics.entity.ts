@@ -1,22 +1,22 @@
-import { Field, InputType, ObjectType } from '@nestjs/graphql';
+import { Field, InputType, ObjectType } from "@nestjs/graphql";
 
 @ObjectType()
 export class DemandeMetric {
-  @Field({ nullable: true })
-  year: number;
+    @Field()
+    year: number;
 
-  @Field({ nullable: true })
-  month: number;
+    @Field()
+    month: number;
 
-  @Field()
-  value: number;
+    @Field()
+    value: number;
 }
 
 @InputType()
 export class DemandeMetricFilter {
-  @Field()
-  startDate: Date;
+    @Field()
+    startDate: Date;
 
-  @Field()
-  endDate: Date;
+    @Field()
+    endDate: Date;
 }

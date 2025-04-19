@@ -1,10 +1,7 @@
-import { Component, effect, ElementRef, Input, ViewChild } from '@angular/core';
+import { Component, effect, ElementRef, ViewChild } from '@angular/core';
 import { FormBuilder, FormGroup, FormsModule } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
-import {
-  FileUploadService,
-  UserRole,
-} from '../../services/file-upload.service';
+import { FileUploadService } from '../../services/file-upload.service';
 
 @Component({
   selector: 'app-file-upload',
@@ -12,7 +9,6 @@ import {
   styleUrl: './file-upload.component.scss',
 })
 export class FileUploadComponent {
-  @Input() type: UserRole;
   search!: string;
   uploadForm: FormGroup;
   selectedFile: File | null = null;
@@ -36,7 +32,7 @@ export class FileUploadComponent {
     const files = event.target as HTMLInputElement;
     if (files) {
       const file: File = (event.target as HTMLInputElement).files[0];
-      this.fileUploadService.renderFile(file, this.type);
+      this.fileUploadService.renderFile(file);
     }
   }
   closeModal() {

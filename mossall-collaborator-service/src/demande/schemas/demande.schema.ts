@@ -17,10 +17,6 @@ export const demandeSchema = new Schema(
     rejectedReason: { type: String },
     rejectedAt: { type: Date },
     rejectedBy: { type: Schema.Types.ObjectId, required: false },
-
-    refundDuration: { type: Number, required: true },
-
-    organizationServiceId: { type: Schema.Types.ObjectId, default: null },
   },
   defaultSchemaOptions,
 );
