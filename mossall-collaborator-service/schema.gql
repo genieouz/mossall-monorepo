@@ -1,0 +1,349 @@
+# ------------------------------------------------------
+# THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY)
+# ------------------------------------------------------
+
+type Organization {
+  id: ID!
+
+  """Nom de l'organisation"""
+  name: String!
+
+  """Email de l'utilisateur racine ou admin"""
+  rootEmail: String!
+  maxDemandeAmount: Float!
+  amountPercent: Float!
+  fees: Float!
+  demandeDeadlineDay: Float!
+}
+
+type User {
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  id: String!
+  email: String!
+  firstName: String!
+  lastName: String!
+  organization: Organization!
+  phoneNumber: String
+  address: String
+  position: String
+  uniqueIdentifier: String
+  salary: Float
+  balance: Float
+  wizallAccountNumber: String
+  bankAccountNumber: String
+  totalDemandeAmount: Float!
+  role: String
+  blocked: Boolean
+  birthDate: DateTime
+  favoriteWallet: Wallet
+  enableEmailNotification: Boolean
+}
+
+"""
+A date-time string at UTC, such as 2019-12-03T09:54:33Z, compliant with the date-time format.
+"""
+scalar DateTime
+
+"""Possible wallets"""
+enum Wallet {
+  WAVE
+  ORANGE_MONEY
+}
+
+type Session {
+  """Null if user must reset his password"""
+  user: User
+
+  """Not null if user must reset his password. Null other cases"""
+  token: String
+
+  """False if user must reset his password"""
+  enabled: Boolean!
+
+  """Not null if user must reset his password. Null other cases"""
+  expires_in: Float
+
+  """Not null if user must reset his password. Null other cases"""
+  refresh_token: String
+
+  """Not null if user must reset his password. Null other cases"""
+  access_token: String
+}
+
+type DemandeMetric {
+  year: Float
+  month: Float
+  value: Float!
+}
+
+type Demande {
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  id: ID!
+  amount: Float!
+  number: Float!
+  fees: Float!
+  status: DemandeStatus!
+  rejectedReason: String
+  refundDuration: Float
+  collaborator: User!
+  organisationService: OrganisationService
+}
+
+enum DemandeStatus {
+  VALIDATED
+  PAYED
+  REJECTED
+  PENDING
+  IN_PROCESS
+  CANCELLED
+}
+
+type PaginationInfo {
+  totalItems: Int!
+  pageCount: Int!
+  currentPage: Int!
+  pageSize: Int!
+}
+
+type OrganisationService {
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  id: String!
+  amount: Int
+  amountUnit: AmountUnit!
+  refundDuration: Int!
+  refundDurationUnit: DurationUnit!
+  activated: Boolean!
+  activatedAt: DateTime
+  activationDurationDay: Int!
+  autoValidate: Boolean!
+  organizationId: String!
+  serviceId: String!
+  organization: Organization!
+  service: Service!
+  events: [Event!]
+  demandes: [Demande!]
+}
+
+enum AmountUnit {
+  Fixed
+  Percentage
+}
+
+enum DurationUnit {
+  Day
+  Month
+}
+
+type Event {
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  id: String!
+  title: String!
+  description: String
+  startDate: DateTime!
+  endDate: DateTime!
+  activated: Boolean
+  addedBy: String
+  organisationService: OrganisationService!
+}
+
+type Service {
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  id: String!
+  title: String!
+  description: String
+  identifier: String!
+  refundDurationMonth: Int!
+  available: Boolean!
+  publishedAt: DateTime
+  addedBy: String
+}
+
+type Payment {
+  id: ID!
+}
+
+type CategorySocioproService {
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  id: String!
+  amount: Int!
+  amountUnit: AmountUnit!
+  refundDuration: Int!
+  refundDurationUnit: DurationUnit!
+  activated: Boolean!
+  activatedAt: DateTime
+  autoValidate: Boolean!
+  organisationServiceId: String!
+  categorySocioproId: String!
+  categorySociopro: CategorySociopro
+  organisationService: OrganisationService
+}
+
+type PaginatedCategorySocioproServiceResult {
+  pagination: PaginationInfo!
+  results: [CategorySocioproService!]!
+}
+
+type CategorySociopro {
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  id: String!
+  title: String
+  description: String
+  activated: Boolean
+  organizationId: String
+  addedBy: String
+  organisation: Organization!
+}
+
+type PaginatedCategorySocioproResult {
+  pagination: PaginationInfo!
+  results: [CategorySociopro!]!
+}
+
+type Activity {
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  id: ID!
+}
+
+type Query {
+  """Token to call reset password endpoint"""
+  requestResetCollaboratorPassword(oldPassword: String!): String!
+  loginCollaborator(loginInput: LoginInput!): Session!
+  refreshCollaboratorToken(refreshToken: String!): Session!
+  fetchMyDemandesMetrics(metricsFilter: DemandeMetricFilter!): [DemandeMetric!]!
+  checkMyDemandeFees(demandeAmount: Float!): Float!
+  fetchMyDemandes: [Demande!]!
+  fetchMyDemande(demandeId: ID!): Demande!
+  fetchAllOrganisationServices(queryConfig: QueryDataConfigInput): [OrganisationService!]!
+  fetchOrganisationService(organisationServiceId: ID!): OrganisationService!
+  fetchOrganisationServiceByOrganisationIdAndServiceId(organisationId: ID!, serviceId: ID!): OrganisationService!
+  fetchAllEvents(queryConfig: QueryDataConfigInput, organizationServiceId: ID!): [Event!]!
+  fetchEvent(eventId: ID!): Event!
+  fetchAllServices(queryConfig: QueryDataConfigInput): [Service!]!
+  fetchService(serviceId: ID!): Service!
+  fetchPayments: [Payment!]!
+  fetchPayment(paymentId: ID!): Payment!
+  fetchCategorySocioproServices(queryConfig: QueryDataConfigInput): PaginatedCategorySocioproServiceResult!
+  fetchAllCategorySocioproServices(queryConfig: QueryDataConfigInput, organisationServiceId: ID!): [CategorySocioproService!]!
+  fetchCategorySocioproService(categorySocioproServiceId: ID!): CategorySocioproService!
+  fetchCategorySociopros(queryConfig: QueryDataConfigInput): PaginatedCategorySocioproResult!
+  fetchAllCategorySociopros(queryConfig: QueryDataConfigInput): [CategorySociopro!]!
+  fetchCategorySociopro(categorySocioproId: ID!): CategorySociopro!
+  checkMyBalance: Float!
+  fetchActivities: [Activity!]!
+  fetchActivity(activityId: ID!): Activity!
+}
+
+input LoginInput {
+  email: String!
+  password: String!
+}
+
+input DemandeMetricFilter {
+  startDate: DateTime!
+  endDate: DateTime!
+}
+
+input QueryDataConfigInput {
+  limit: Int
+  skip: Int
+  orderBy: OrderByInput
+  page: Int
+  search: String
+}
+
+input OrderByInput {
+  property: String!
+  direction: OrderByDirection!
+}
+
+"""Sort order"""
+enum OrderByDirection {
+  ASC
+  DESC
+}
+
+type Mutation {
+  resetCollaboratorPassword(resetPasswordInput: ResetPasswordInput!): Boolean!
+  startForgotPassword(email: String!): Boolean!
+  addDemande(demandeInput: DemandeInput!, organizationServiceId: ID!, eventId: ID): Demande!
+  updateDemande(demandeInput: DemandeUpdateInput!, demandeId: ID!): Boolean!
+  cancelDemande(demandeId: ID!): Boolean!
+  createCategorySocioproService(categorySocioproServiceInput: CategorySocioproServiceInput!, categorySocioproId: ID!, organisationServiceId: ID!): CategorySocioproService!
+  updateCategorySocioproService(categorySocioproServiceInput: CategorySocioproServiceUpdateInput!, categorySocioproServiceId: ID!): Boolean!
+  deleteCategorySocioproService(categorySocioproServiceId: ID!): Boolean!
+  activateCategorySocioproService(categorySocioproServiceId: ID!): Boolean!
+  deactivateCategorySocioproService(categorySocioproServiceId: ID!): Boolean!
+  createCategorySociopro(categorySocioproInput: CategorySocioproInput!, organizationId: ID!): CategorySociopro!
+  updateCategorySociopro(categorySocioproInput: CategorySocioproUpdateInput!, categorySocioproId: ID!): Boolean!
+  deleteCategorySociopro(categorySocioproId: ID!): Boolean!
+  activateCategorySociopro(categorySocioproId: ID!, activatedAt: DateTime): Boolean!
+  deactivateCategorySociopro(categorySocioproId: ID!): Boolean!
+  updateMyBankAccount(bankAccountNumber: String!): Boolean!
+  updateMyFavoriteWallet(wallet: Wallet!): Boolean!
+  createActivity(activityInput: ActivityInput!): Activity!
+  updateActivity(activityInput: ActivityUpdateInput!, activityId: ID!): Boolean!
+}
+
+input ResetPasswordInput {
+  token: String!
+  password: String!
+}
+
+input DemandeInput {
+  amount: Float!
+  refundDuration: Float!
+}
+
+input DemandeUpdateInput {
+  amount: Float!
+  refundDuration: Float!
+}
+
+input CategorySocioproServiceInput {
+  amount: Int
+  amountUnit: AmountUnit
+  refundDuration: Int!
+  refundDurationUnit: DurationUnit
+  activated: Boolean!
+  activatedAt: DateTime
+  autoValidate: Boolean
+}
+
+input CategorySocioproServiceUpdateInput {
+  amount: Int
+  amountUnit: AmountUnit
+  refundDuration: Int
+  refundDurationUnit: DurationUnit
+  activated: Boolean
+  activatedAt: DateTime
+  autoValidate: Boolean
+}
+
+input CategorySocioproInput {
+  title: String!
+  description: String
+  activated: Boolean
+}
+
+input CategorySocioproUpdateInput {
+  title: String
+  description: String
+  activated: Boolean
+  activatedAt: DateTime
+}
+
+input ActivityInput {
+  id: String!
+}
+
+input ActivityUpdateInput {
+  id: String!
+}

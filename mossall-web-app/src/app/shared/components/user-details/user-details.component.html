@@ -1,0 +1,59 @@
+<div class="container " fxLayout="column" fxLayoutGap="13px" >
+    <div class="top" fxLayout="column">
+        <span class="title">
+            Informations
+        </span>
+        <div class="chart-container" fxLayout="center center">
+            <apx-chart [series]="chartOptions.series" [chart]="chartOptions.chart"
+                [responsive]="chartOptions.responsive" [labels]="chartOptions.labels" [legend]="chartOptions.legend"
+                [colors]="chartOptions.colors">
+            </apx-chart>
+        </div>
+        <ul class="details-top" fxLayout="column" fxLayoutGap="12px">
+            <li class="item" fxLayout="row" fxLayoutAlign="space-between center">
+                <span class="label">Salaire net mensuel :</span>
+                <span class="value">XOF {{ user?.salary | number:'1.0-0' }}</span>
+            </li>
+            <li class="item" fxLayout="row" fxLayoutAlign="space-between center">
+                <span class="label">Acompte autorisé :</span>
+                <span class="value">XOF {{ user?.authorizedAdvance | number:'1.0-0' }}</span>
+            </li>
+            <li class="item" fxLayout="row" fxLayoutAlign="space-between center">
+              <span class="label">Total demande :</span>
+              <span class="value">XOF {{ user?.totalDemandeAmount | number:'1.0-0' }}</span>
+          </li>
+
+          <li class="item" fxLayout="row" fxLayoutAlign="space-between center">
+            <span class="label">Balance :</span>
+            <span class="value">XOF {{ user?.balance | number:'1.0-0' }}</span>
+        </li>
+            <li class="item" fxLayout="row" fxLayoutAlign="space-between center">
+                <span class="label">Iban :</span>
+                <span class="value">{{ user?.bankAccountNumber }}</span>
+            </li>
+        </ul>
+    </div>
+    <!-- <div class="bottom" fxLayout="column">
+        <span class="title">
+            Collaborateur
+        </span>
+        <div class="details-bottom" fxLayout="column" fxLayoutAlign="start center" fxLayoutGap="12px">
+            <div class="image-container" fxLayout="row" fxLayoutAlign="center center" fxLayoutGap="16px">
+                <span [routerLink]="['/dashboard/collaborators/'+user?.id]" routerLinkActive="router-link-active"
+                    class="btn-config" fxLayoutAlign="center center">
+                    <mat-icon>settings</mat-icon>
+                </span>
+                <div class="img-user">
+                    <img src="./assets/img/img-user.png" alt="">
+                </div>
+                <span></span>
+              
+            </div>
+            <div fxLayout="column" fxLayoutAlign="start center" fxLayoutGap="4px">
+                <span class="user-name" fxLayoutAlign="center start">{{ user?.firstName }} {{ user?.lastName }}</span>
+                <span class="user-company" fxLayoutAlign="center start">{{ user?.organization?.name }}</span>
+            </div>
+        </div>
+       
+    </div> -->
+</div>

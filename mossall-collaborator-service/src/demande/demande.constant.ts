@@ -1,0 +1,1 @@
+export const WaveFees: number = 1.65 / 100;
